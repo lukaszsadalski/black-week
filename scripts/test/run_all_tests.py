@@ -57,6 +57,7 @@ def run_test_module(name: str, script_relpath: str, args: list = None) -> dict:
             timeout=360
         )
         duration = round(time.time() - start_time, 2)
+        success = (res.returncode == 0)
         if success:
             if "[SKIPPED]" in (res.stdout or ""):
                 status = "SKIPPED"
