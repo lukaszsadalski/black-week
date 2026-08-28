@@ -136,7 +136,19 @@ pip install -r backend/requirements.txt
 
 ---
 
-### Step 4.2: Enable Google Cloud APIs
+### Step 4.2: Authenticate Google Cloud CLI & Set Project
+
+Authenticate your local terminal and Application Default Credentials (ADC):
+
+```bash
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project YOUR_GCP_PROJECT_ID
+```
+
+---
+
+### Step 4.3: Enable Google Cloud APIs
 
 Run the following command to enable all **12 required Google Cloud APIs**:
 
@@ -173,7 +185,7 @@ gcloud services enable \
 
 ---
 
-### Step 4.2b: Grant Developer Provisioning Roles (If not Project Owner)
+### Step 4.3b: Grant Developer Provisioning Roles (If not Project Owner)
 
 If your GCP account is not already a **Project Owner/Editor**, run this command to grant the necessary provisioning and metadata management permissions:
 
@@ -187,7 +199,7 @@ done
 
 ---
 
-### Step 4.3: Configure Environment Variables & Authenticate
+### Step 4.4: Configure Environment Variables (`.env`)
 
 Copy the environment template file:
 

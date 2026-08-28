@@ -28,8 +28,11 @@ from google.oauth2 import credentials as oauth2_credentials
 fake = Faker("en_GB")
 random.seed(42)
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOCAL_TMP_DIR = os.path.join(PROJECT_ROOT, ".tmp")
+
 def load_dotenv():
-    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    env_path = os.path.join(PROJECT_ROOT, ".env")
     if os.path.exists(env_path):
         with open(env_path, "r") as f:
             for line in f:
@@ -626,7 +629,8 @@ def generate_all_extended_data():
             source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
             write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE
         )
-        tmp_file = f"/tmp/{table_name}.json"
+        os.makedirs(LOCAL_TMP_DIR, exist_ok=True)
+        tmp_file = os.path.join(LOCAL_TMP_DIR, f"{table_name}.json")
         try:
             with open(tmp_file, "w", encoding="utf-8") as f:
                 for r in rows:
@@ -639,7 +643,10 @@ def generate_all_extended_data():
             return table_name, len(rows), False, str(e)
         finally:
             if os.path.exists(tmp_file):
-                os.remove(tmp_file)
+                try:
+                    os.remove(tmp_file)
+                except Exception:
+                    pass
 
     ingested_count = 0
     total_rows = sum(len(rows) for rows in data.values())

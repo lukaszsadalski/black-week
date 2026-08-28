@@ -27,14 +27,17 @@ import json
 import uuid
 import random
 import tempfile
+import shutil
 import subprocess
 import numpy as np
 from datetime import datetime, timedelta, timezone
 from google.cloud import bigquery
 from google.oauth2 import credentials as oauth2_credentials
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def load_dotenv():
-    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    env_path = os.path.join(PROJECT_ROOT, ".env")
     if os.path.exists(env_path):
         with open(env_path, "r") as f:
             for line in f:
@@ -408,12 +411,14 @@ def generate_all_data():
     oos_interactions = []
     oos_id = 1
 
-    # Write web_sessions and web_events directly to streaming JSONL temporary files
-    temp_dir = tempfile.mkdtemp()
+    # Write web_sessions and web_events directly to streaming JSONL temporary files in project-local .tmp
+    local_tmp_base = os.path.join(PROJECT_ROOT, ".tmp")
+    os.makedirs(local_tmp_base, exist_ok=True)
+    temp_dir = tempfile.mkdtemp(dir=local_tmp_base)
     sessions_file_path = os.path.join(temp_dir, "web_sessions.json")
     events_file_path = os.path.join(temp_dir, "web_events.json")
 
-    print(f"Streaming {TARGET_TOTAL_SESSIONS} sessions and ~16M web events to temporary disk...")
+    print(f"Streaming {TARGET_TOTAL_SESSIONS} sessions and ~16M web events to project temporary disk ({local_tmp_base})...")
 
     traffic_sources_pool = ["Paid Search", "Organic Search", "Paid Social", "Direct", "Email", "Affiliate"]
     traffic_weights = [0.38, 0.24, 0.18, 0.10, 0.06, 0.04]
@@ -851,16 +856,13 @@ def generate_all_data():
 
     # Load large streamed tables (web_sessions & web_events)
     print("\nLoading large clickstream tables from disk...")
-    load_ndjson_file_to_bq(client, "web_sessions", sessions_file_path)
-    load_ndjson_file_to_bq(client, "web_events", events_file_path)
-
-    # Clean up temporary directory
     try:
-        os.remove(sessions_file_path)
-        os.remove(events_file_path)
-        os.rmdir(temp_dir)
-    except Exception:
-        pass
+        load_ndjson_file_to_bq(client, "web_sessions", sessions_file_path)
+        load_ndjson_file_to_bq(client, "web_events", events_file_path)
+    finally:
+        # Clean up temporary directory safely
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     print("\n" + "=" * 80)
     print("DATA GENERATION & RATIOS CALIBRATION COMPLETED SUCCESSFULLY")

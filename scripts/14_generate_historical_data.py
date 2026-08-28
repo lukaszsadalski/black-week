@@ -15,14 +15,16 @@ Usage:
 """
 
 import os
-import sys
 import uuid
 import random
 import tempfile
+import shutil
+import json
 import numpy as np
 from datetime import datetime, timedelta
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend"))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(PROJECT_ROOT, "backend"))
 from google.cloud import bigquery
 from app.config import PROJECT_ID, DATASET_ID, LOCATION
 
@@ -356,7 +358,9 @@ def generate_historical_data():
 
     # 8. Write and Append to BigQuery
     print("\n8. Streaming historical records to BigQuery Load Jobs...")
-    temp_dir = tempfile.mkdtemp()
+    local_tmp_base = os.path.join(PROJECT_ROOT, ".tmp")
+    os.makedirs(local_tmp_base, exist_ok=True)
+    temp_dir = tempfile.mkdtemp(dir=local_tmp_base)
     
     datasets_to_upload = [
         ("weekly_commercial_targets", weekly_targets),
@@ -371,15 +375,18 @@ def generate_historical_data():
         ("payment_gateway_logs", payment_logs)
     ]
 
-    import json
-    for table_name, record_list in datasets_to_upload:
-        if not record_list:
-            continue
-        file_path = os.path.join(temp_dir, f"{table_name}.json")
-        with open(file_path, "w", encoding="utf-8") as f:
-            for rec in record_list:
-                f.write(json.dumps(rec) + "\n")
-        append_ndjson_to_bq(client, table_name, file_path)
+    try:
+        for table_name, record_list in datasets_to_upload:
+            if not record_list:
+                continue
+            file_path = os.path.join(temp_dir, f"{table_name}.json")
+            with open(file_path, "w", encoding="utf-8") as f:
+                for rec in record_list:
+                    f.write(json.dumps(rec) + "\n")
+            append_ndjson_to_bq(client, table_name, file_path)
+    finally:
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     print("\n🎉 ALL 1.5-MONTH HISTORICAL BASELINE DATA SUCCESSFULLY APPENDED TO BIGQUERY!")
 

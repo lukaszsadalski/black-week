@@ -66,6 +66,7 @@ Thumbs.db
 # Local Scratch Scripts, Temporary Files & Backups
 # ==============================================================================
 scratch/
+.tmp/
 tmp/
 temp/
 backup/

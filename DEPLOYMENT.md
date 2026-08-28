@@ -6,7 +6,16 @@ This document outlines the step-by-step instructions to deploy, run, seed, and v
 
 ## 1. Environment Setup & API Enablement
 
-### Step 1.1: Enable All 12 Required Google Cloud APIs
+### Step 1.1: Authenticate Google Cloud CLI & Set Project
+```bash
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project YOUR_GCP_PROJECT_ID
+```
+
+---
+
+### Step 1.2: Enable All 12 Required Google Cloud APIs
 ```bash
 gcloud services enable \
   bigquery.googleapis.com \
@@ -24,7 +33,9 @@ gcloud services enable \
   --project=YOUR_GCP_PROJECT_ID
 ```
 
-### Step 1.1b: Grant Developer Provisioning IAM Roles (If not Project Owner)
+---
+
+### Step 1.2b: Grant Developer Provisioning IAM Roles (If not Project Owner)
 ```bash
 for ROLE in roles/bigquery.admin roles/dataplex.metadataAdmin roles/datacatalog.admin roles/aiplatform.user; do
   gcloud projects add-iam-policy-binding YOUR_GCP_PROJECT_ID \
@@ -33,7 +44,9 @@ for ROLE in roles/bigquery.admin roles/dataplex.metadataAdmin roles/datacatalog.
 done
 ```
 
-### Step 1.2: Configure Environment Variables (`.env`)
+---
+
+### Step 1.3: Configure Environment Variables (`.env`)
 Verify the centralized `.env` configuration file:
 
 ```ini
