@@ -162,46 +162,58 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir backend --r
 ## 5. Google Cloud Run Production Deployment
 
 ```bash
-# Set your target deployment region
-export REGION=YOUR_GCP_REGION # e.g., us-central1 or preferred region
+### Turnkey Single-Command Cloud Run Deployment (Recommended)
+
+```bash
+python3 scripts/deploy_cloud_run.py
 ```
 
-### Step 5.1: Create Docker Repository in Artifact Registry
+---
+
+### Step-by-Step Manual Deployment
+
 ```bash
+# 1. Resolve Project ID and Region dynamically from .env or active gcloud config
+PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "(unset)" ]; then
+  PROJECT_ID=$(grep -E '^GCP_PROJECT_ID=' .env | cut -d '=' -f2 | tr -d ' "\r\n')
+fi
+
+REGION=$(grep -E '^BQ_LOCATION=' .env | cut -d '=' -f2 | tr -d ' "\r\n')
+REGION=${REGION:-"us-central1"}
+
+echo "Deploying to Project: ${PROJECT_ID} in Region: ${REGION}"
+
+# 2. Create Docker Repository in Artifact Registry (if not already created)
 gcloud artifacts repositories create lumiere-shop-repo \
   --repository-format=docker \
   --location=${REGION} \
   --description="Docker repository for LumièreShop" \
-  --project=YOUR_GCP_PROJECT_ID
-```
+  --project=${PROJECT_ID} || true
 
-### Step 5.2: Grant IAM Roles to Cloud Run Service Account
-```bash
-PROJECT_NUMBER=$(gcloud projects describe YOUR_GCP_PROJECT_ID --format="value(projectNumber)")
+# 3. Grant required IAM roles to Cloud Run Compute Service Account
+PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)")
 
-for ROLE in roles/bigquery.dataEditor roles/bigquery.jobUser roles/dataplex.viewer roles/aiplatform.user; do
-  gcloud projects add-iam-policy-binding YOUR_GCP_PROJECT_ID \
+for ROLE in roles/bigquery.dataEditor roles/bigquery.jobUser roles/dataplex.viewer roles/aiplatform.user roles/storage.admin roles/artifactregistry.writer roles/logging.logWriter; do
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-    --role="$ROLE"
+    --role="$ROLE" \
+    --quiet
 done
-```
 
-### Step 5.3: Build & Push Container Image
-```bash
+# 4. Build and push container image via Cloud Build
 gcloud builds submit \
-  --tag=${REGION}-docker.pkg.dev/YOUR_GCP_PROJECT_ID/lumiere-shop-repo/lumiere-app:latest \
-  --project=YOUR_GCP_PROJECT_ID
-```
+  --tag=${REGION}-docker.pkg.dev/${PROJECT_ID}/lumiere-shop-repo/lumiere-app:latest \
+  --project=${PROJECT_ID}
 
-### Step 5.4: Deploy Service to Cloud Run
-```bash
+# 5. Deploy to Cloud Run
 gcloud run deploy lumiere-shop-app \
-  --image=${REGION}-docker.pkg.dev/YOUR_GCP_PROJECT_ID/lumiere-shop-repo/lumiere-app:latest \
+  --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/lumiere-shop-repo/lumiere-app:latest \
   --region=${REGION} \
-  --project=YOUR_GCP_PROJECT_ID \
+  --project=${PROJECT_ID} \
   --platform=managed \
   --allow-unauthenticated \
-  --set-env-vars GCP_PROJECT_ID=YOUR_GCP_PROJECT_ID,BQ_DATASET_ID=ecommerce_dw,BQ_LOCATION=${REGION},CA_API_HOST=https://geminidataanalytics.googleapis.com,CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/YOUR_GCP_PROJECT_ID/locations/global:chat,DATA_AGENT_ID=gda-lumiere-primary,USER_NAME_SCREEN=on
+  --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},BQ_DATASET_ID=ecommerce_dw,BQ_LOCATION=${REGION},CA_API_HOST=https://geminidataanalytics.googleapis.com,CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/${PROJECT_ID}/locations/global:chat,DATA_AGENT_ID=gda-lumiere-primary,USER_NAME_SCREEN=on
 ```
 
 ### Production Architecture & Feature Highlights
