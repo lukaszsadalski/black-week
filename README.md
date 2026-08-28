@@ -323,7 +323,7 @@ gcloud artifacts repositories create lumiere-shop-repo \
 # 3. Grant required IAM roles to Cloud Run Compute Service Account
 PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)")
 
-for ROLE in roles/bigquery.dataEditor roles/bigquery.jobUser roles/dataplex.viewer roles/aiplatform.user roles/storage.admin roles/artifactregistry.writer roles/logging.logWriter; do
+for ROLE in roles/bigquery.admin roles/bigquery.dataEditor roles/bigquery.jobUser roles/dataplex.viewer roles/aiplatform.user roles/cloudaicompanion.user roles/storage.admin roles/artifactregistry.writer roles/logging.logWriter; do
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
     --role="$ROLE" \

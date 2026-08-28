@@ -166,10 +166,14 @@ def main():
     print(f"\n▶️  2. Configuring IAM roles for Service Accounts ({project_number})...")
     compute_sa = f"serviceAccount:{project_number}-compute@developer.gserviceaccount.com"
     compute_roles = [
+        "roles/bigquery.admin",
         "roles/bigquery.dataEditor",
         "roles/bigquery.jobUser",
         "roles/dataplex.viewer",
+        "roles/dataplex.metadataAdmin",
         "roles/aiplatform.user",
+        "roles/cloudaicompanion.user",
+        "roles/cloudaicompanion.admin",
         "roles/artifactregistry.writer",
         "roles/artifactregistry.reader",
         "roles/storage.admin",
