@@ -126,8 +126,8 @@ Follow these steps to deploy LumièreShop in your own Google Cloud project from 
 ### Step 4.1: Clone Repository & Set Up Virtual Environment
 
 ```bash
-git clone https://github.com/lukaszsadalski/lumiere-shop.git
-cd lumiere-shop
+git clone https://github.com/lukaszsadalski/black-week.git
+cd black-week
 
 python3 -m venv .venv
 source .venv/bin/activate

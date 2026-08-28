@@ -6,6 +6,7 @@
 fastapi==0.115.0
 uvicorn==0.30.6
 pydantic==2.8.2
+anyio==4.14.2
 
 # HTTP & REST Client
 requests==2.32.3
@@ -13,3 +14,16 @@ requests==2.32.3
 # Google Cloud Platform SDKs & BigQuery Client
 google-cloud-bigquery==3.25.0
 google-auth==2.34.0
+
+# Numerical & Data Processing
+numpy==2.5.1
+
+# Synthetic Data Generation & Taxonomy
+faker==40.36.0
+pyyaml==6.0.3
+
+# Automated Testing & Documentation Generation
+playwright==1.62.0
+beautifulsoup4==4.14.3
+
+
