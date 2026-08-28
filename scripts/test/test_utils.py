@@ -108,10 +108,10 @@ def ensure_test_server(port: int = 8000) -> str:
     return base_url
 
 
-def ensure_playwright_chromium():
+def ensure_playwright_chromium() -> bool:
     """
-    Ensures Playwright Chromium browser binary is installed.
-    Automatically triggers `playwright install chromium` if missing.
+    Ensures Playwright Chromium browser binary and Linux OS dependencies are installed.
+    Automatically triggers `playwright install --with-deps chromium` if missing.
     """
     try:
         from playwright.sync_api import sync_playwright
@@ -119,13 +119,22 @@ def ensure_playwright_chromium():
             try:
                 browser = p.chromium.launch(headless=True)
                 browser.close()
-                return
+                return True
             except Exception as e:
                 err_msg = str(e)
-                if "Executable doesn't exist" in err_msg or "playwright install" in err_msg or "executable" in err_msg.lower():
-                    print("⚡ Playwright Chromium browser not found. Installing Chromium automatically...")
-                    subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+                if "missing dependencies" in err_msg.lower() or "host system is missing" in err_msg.lower() or "executable" in err_msg.lower() or "install" in err_msg.lower():
+                    print("⚡ Headless Linux environment detected. Installing Chromium with OS dependencies (`playwright install --with-deps chromium`)...")
+                    try:
+                        subprocess.run([sys.executable, "-m", "playwright", "install", "--with-deps", "chromium"], check=True)
+                        browser = p.chromium.launch(headless=True)
+                        browser.close()
+                        return True
+                    except Exception as install_err:
+                        print(f"⚠️ Notice: Could not auto-install Linux OS browser packages: {install_err}")
+                        print("  To install manually on Linux: playwright install --with-deps chromium")
+                        return False
     except Exception as e:
         print(f"Notice: Playwright browser check: {e}")
+        return False
 
 

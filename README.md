@@ -206,14 +206,6 @@ USER_NAME_SCREEN=on
 | **`DATA_AGENT_ID`** | Optional | `gda-lumiere-primary` | Identifier for the primary BigQuery Data Agent. **You do NOT need to create an agent in advance** — the bootstrap script will automatically create and ground it in your GCP project. |
 | **`USER_NAME_SCREEN`** | Optional | `on` | Set to `"on"` to show Screen 0 (Operator Identity Entry), or `"off"` to bypass it with auto-generated session IDs. |
 
-Authenticate your local terminal and Application Default Credentials:
-
-```bash
-gcloud auth login
-gcloud auth application-default login
-gcloud config set project YOUR_GCP_PROJECT_ID
-```
-
 ---
 
 ### Step 4.4: Cloud Provisioning & Data Warehouse Initialization
@@ -229,7 +221,7 @@ python3 scripts/bootstrap_new_project.py
 ```
 
 **What this command automatically provisions in your Google Cloud Project:**
-1. **BigQuery Dataset & 140 Tables**: Creates the `ecommerce_dw` dataset and all 140 tables across 17 business domains (Core Catalog, Orders, Clickstream, Competitors, Paid Ads, CRM, Reverse Logistics, ERP Finance, etc.).
+1. **BigQuery Dataset & 140 Tables**: Creates the ecommerce dataset and all 140 tables across 17 business domains (Core Catalog, Orders, Clickstream, Competitors, Paid Ads, CRM, Reverse Logistics, ERP Finance, etc.).
 2. **100% Metadata Annotations**: Populates rich, structured descriptions on every table and column in BigQuery.
 3. **19.3M Calibrated Records**: Seeds deterministic synthetic data (`random.seed(42)`) representing realistic Black Week 2026 sales events, cart abandonments, ad bidding logs, and 6 weeks of historical baseline actuals.
 4. **Knowledge Catalog Business Glossary**: Deploys the business taxonomy across 15 categories, 85 business terms, and 188 native EntryLinks in Google Cloud.
@@ -375,7 +367,7 @@ Clicking *"Compare prompts"* 3 times rapidly under Apps in the left sidebar open
 ---
 
 ### 🤖 3-Agent Parallel Conversational Cockpit ("Compare Chats")
-Clicking *"Compare chats"* 3 times under Apps opens the dedicated 3-Agent staging and parallel evaluation studio:
+Clicking *"Compare chats"* 3 times rapidly under Apps opens the dedicated 3-Agent staging and parallel evaluation studio:
 - Provisions 3 parallel Data Agents (`gda-lumiere-a`, `gda-lumiere-b`, `gda-lumiere-c`) with isolated table clusters (29, 21, 20 tables).
 - **Synchronized Broadcast Bar**: Dispatches analytical prompts to all 3 agents simultaneously.
 - **100-Row Table Capacity & Vertical Scrolling**: Renders up to 100 rows per table with sticky headers, natural visibility for the first 25 rows, smooth vertical scrolling, and dynamic row count badges.

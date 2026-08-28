@@ -57,11 +57,18 @@ def run_test_module(name: str, script_relpath: str, args: list = None) -> dict:
             timeout=360
         )
         duration = round(time.time() - start_time, 2)
-        success = (res.returncode == 0)
+        if success:
+            if "[SKIPPED]" in (res.stdout or ""):
+                status = "SKIPPED"
+            else:
+                status = "PASSED"
+        else:
+            status = "FAILED"
+
         return {
             "name": name,
             "script": script_relpath,
-            "status": "PASSED" if success else "FAILED",
+            "status": status,
             "returncode": res.returncode,
             "duration_s": duration,
             "stdout": res.stdout,
@@ -106,7 +113,7 @@ def main():
     print(" 🚀 LUMIÈRESHOP COMPOSABLE TEST SUITE & QUALITY AUDITOR")
     print(f" Timestamp: {datetime.now(timezone.utc).isoformat()}")
     print(f" Project Root: {PROJECT_ROOT}")
-    print(f" Environment GCP_PROJECT_ID: {os.environ.get("GCP_PROJECT_ID", "")}")
+    print(f" Environment GCP_PROJECT_ID: {os.environ.get('GCP_PROJECT_ID', '')}")
     print("=" * 80)
 
     test_plan = []
@@ -139,6 +146,7 @@ def main():
 
     results = []
     passed_count = 0
+    skipped_count = 0
     failed_count = 0
 
     for idx, (name, relpath) in enumerate(test_plan, 1):
@@ -149,6 +157,9 @@ def main():
         if res["status"] == "PASSED":
             passed_count += 1
             print(f"  ✅ PASSED in {res['duration_s']}s")
+        elif res["status"] == "SKIPPED":
+            skipped_count += 1
+            print(f"  ⚠️ SKIPPED in {res['duration_s']}s (Headless Linux VM missing browser libraries)")
         else:
             failed_count += 1
             print(f"  ❌ {res['status']} in {res['duration_s']}s")
@@ -159,7 +170,7 @@ def main():
 
     print("\n" + "=" * 80)
     print(" 📊 TEST EXECUTION SUMMARY")
-    print(f" Total Tests: {len(test_plan)} | Passed: {passed_count} | Failed: {failed_count}")
+    print(f" Total Tests: {len(test_plan)} | Passed: {passed_count} | Skipped: {skipped_count} | Failed: {failed_count}")
     print("=" * 80)
 
     summary_data = {
