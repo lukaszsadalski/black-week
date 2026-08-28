@@ -449,7 +449,9 @@ lumiere-shop/
 │   ├── 17_add_menu_item_and_agent_no_to_logs.py # DDL adding menu_item and agent_no to logs
 │   ├── apply_bq_descriptions.py            # BigQuery table and column metadata annotator
 │   ├── bootstrap_new_project.py            # Turnkey automated 7-stage cloud deployment orchestrator
+│   ├── cleanup_all.py                      # Master environment teardown & orchestrator (preserves BQ)
 │   ├── cleanup_data_agents.py              # Gemini BigQuery Data Agents deletion & reset tool
+│   ├── cleanup_gcp_apis.py                 # Auxiliary GCP APIs teardown & reset tool
 │   ├── cleanup_knowledge_catalog.py        # Knowledge Catalog & Data Agent reset & purge tool
 │   ├── expand_business_glossary.py         # 85-term business taxonomy generator
 │   ├── export_bq_tables_to_csv.py          # BigQuery dataset CSV exporter & archiver

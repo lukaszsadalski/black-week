@@ -252,16 +252,35 @@ curl -s -X POST "${SERVICE_URL}/api/chat" \
 
 ---
 
-## 7. BigQuery Table Export & Archival
+## 8. Environment Teardown & Cleanup Tools
 
-To export all tables from `ecommerce_dw` (excluding `agent_interaction_logs`) to individual CSV files with a generated `README.md` catalog and compressed `.tar.gz` bundle:
+To clean up resources after testing or to reset an environment on Google Cloud:
+
+### Master Teardown (All 3 Cleanup Stages in One Command)
+Executes sequential teardown across Gemini Data Agents, Knowledge Catalog governance resources, and disables auxiliary Google Cloud APIs, while preserving the BigQuery dataset and 140 tables intact:
 
 ```bash
-python3 scripts/export_bq_tables_to_csv.py
+# Interactive confirmation
+python3 scripts/cleanup_all.py
+
+# Non-interactive / Automated execution
+python3 scripts/cleanup_all.py --force
 ```
 
-Outputs:
-- **Archive Package**: `exports/ecommerce_dw_tables.tar.gz`
-- **CSV Directory**: `exports/ecommerce_dw_csv/`
-- **Export Catalog**: `exports/ecommerce_dw_csv/README.md`
+### Standalone Cleanup Scripts
+If executing cleanup stages individually:
+
+1. **Purge Gemini Enterprise Data Agents**:
+   ```bash
+   python3 scripts/cleanup_data_agents.py --force
+   ```
+2. **Purge Knowledge Catalog Glossaries, Terms, Categories, EntryLinks, and AspectTypes**:
+   ```bash
+   python3 scripts/cleanup_knowledge_catalog.py --force
+   ```
+3. **Disable Auxiliary Google Cloud APIs (Preserves BigQuery Dataset)**:
+   ```bash
+   python3 scripts/cleanup_gcp_apis.py --force
+   ```
+
 

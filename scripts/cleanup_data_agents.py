@@ -27,7 +27,8 @@ import sys
 import subprocess
 import argparse
 import requests
-from typing import List, Dict, Any
+import time
+from typing import List, Dict, Any, Optional
 
 
 def load_dotenv():
@@ -70,7 +71,7 @@ def get_access_token() -> str:
     return token or ""
 
 
-def list_remote_data_agents(token: str) -> List[str]:
+def list_remote_data_agents(token: str, max_retries: int = 5) -> List[str]:
     """Queries Google Cloud API to list all active Data Agents in the project."""
     url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents"
     headers = {
@@ -81,48 +82,69 @@ def list_remote_data_agents(token: str) -> List[str]:
     page_token = ""
     while True:
         req_url = f"{url}?pageToken={page_token}" if page_token else url
-        try:
-            r = requests.get(req_url, headers=headers, timeout=15)
-            if r.status_code == 200:
-                data = r.json()
-                agents = data.get("dataAgents", [])
-                for a in agents:
-                    a_name = a.get("name", "")
-                    if a_name:
-                        agent_id = a_name.split("/")[-1]
-                        discovered.append(agent_id)
-                page_token = data.get("nextPageToken", "")
-                if not page_token or not agents:
+        for attempt in range(max_retries):
+            try:
+                r = requests.get(req_url, headers=headers, timeout=15)
+                if r.status_code == 200:
+                    data = r.json()
+                    agents = data.get("dataAgents", [])
+                    for a in agents:
+                        a_name = a.get("name", "")
+                        if a_name:
+                            agent_id = a_name.split("/")[-1]
+                            discovered.append(agent_id)
+                    page_token = data.get("nextPageToken", "")
                     break
-            else:
-                break
-        except Exception:
+                elif r.status_code == 429 or (r.status_code == 403 and "quota" in r.text.lower()):
+                    backoff = 3.0 * (1.5 ** attempt)
+                    print(f"  ⏳ GCP rate limit encountered (HTTP {r.status_code}). Pausing {backoff:.1f}s before retry ({attempt + 1}/{max_retries})...")
+                    time.sleep(backoff)
+                    continue
+                else:
+                    break
+            except Exception:
+                if attempt < max_retries - 1:
+                    time.sleep(2.0)
+                else:
+                    break
+
+        if not page_token or not agents:
             break
     return list(dict.fromkeys(discovered))
 
 
-def delete_data_agent(token: str, agent_id: str) -> bool:
-    """Deletes a single Data Agent via the Gemini Data Analytics REST API."""
+def delete_data_agent(token: str, agent_id: str, max_retries: int = 5) -> bool:
+    """Deletes a single Data Agent via the Gemini Data Analytics REST API with exponential backoff."""
     url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{agent_id}"
     headers = {
         "Authorization": f"Bearer {token}",
         "x-goog-user-project": PROJECT_ID
     }
-    try:
-        r = requests.delete(url, headers=headers, timeout=20)
-        if r.status_code in [200, 204]:
-            print(f"  ✅ Deleted Data Agent: {agent_id}")
-            return True
-        elif r.status_code == 404:
-            print(f"  ℹ️ Data Agent '{agent_id}' does not exist (already clean).")
-            return True
-        else:
-            err_msg = r.text[:200].replace("\n", " ")
-            print(f"  ⚠️ Could not delete Data Agent '{agent_id}' (HTTP {r.status_code}): {err_msg}")
-            return False
-    except Exception as e:
-        print(f"  ❌ Error deleting Data Agent '{agent_id}': {e}")
-        return False
+    for attempt in range(max_retries):
+        try:
+            r = requests.delete(url, headers=headers, timeout=20)
+            if r.status_code in [200, 204]:
+                print(f"  ✅ Deleted Data Agent: {agent_id}")
+                return True
+            elif r.status_code == 404:
+                print(f"  ℹ️ Data Agent '{agent_id}' does not exist (already clean).")
+                return True
+            elif r.status_code == 429 or (r.status_code == 403 and "quota" in r.text.lower()):
+                backoff = 3.0 * (1.5 ** attempt)
+                print(f"    ⏳ GCP rate limit encountered (HTTP {r.status_code}). Pausing {backoff:.1f}s before retry ({attempt + 1}/{max_retries})...")
+                time.sleep(backoff)
+                continue
+            else:
+                err_msg = r.text[:200].replace("\n", " ")
+                print(f"  ⚠️ Could not delete Data Agent '{agent_id}' (HTTP {r.status_code}): {err_msg}")
+                return False
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2.0)
+            else:
+                print(f"  ❌ Error deleting Data Agent '{agent_id}': {e}")
+                return False
+    return False
 
 
 def cleanup_data_agents():
@@ -162,6 +184,7 @@ def cleanup_data_agents():
     for agent_id in all_agents:
         if delete_data_agent(token, agent_id):
             deleted_count += 1
+        time.sleep(0.35)
 
     print("\n" + "=" * 80)
     print(f"✨ DATA AGENT PURGE COMPLETE: {deleted_count}/{len(all_agents)} processed!")
