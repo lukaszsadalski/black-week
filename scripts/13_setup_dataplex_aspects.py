@@ -178,6 +178,19 @@ EXTENDED_DOMAIN_CONTEXT_TEMPLATES = {
     "domain_q_sandbox": "Non-production sandbox experimentation and quality assurance dataset capturing synthetic load test sessions, pricing simulations, and automated telemetry. Diagnostic Role: Experimental Feature Validation & QA Harness."
 }
 
+def resolve_dataset_location(project_id, dataset_id, default_loc):
+    """Auto-detects the exact BigQuery dataset region from Google Cloud."""
+    try:
+        from google.cloud import bigquery
+        client = bigquery.Client(project=project_id)
+        dataset = client.get_dataset(dataset_id)
+        if dataset and dataset.location:
+            return dataset.location.lower()
+    except Exception:
+        pass
+    return default_loc
+
+
 def get_access_token():
     token = os.environ.get("GCP_ACCESS_TOKEN")
     if not token:
@@ -225,6 +238,7 @@ def create_or_get_global_aspect_type(token):
     
     r = requests.get(url, headers=headers)
     if r.status_code == 200:
+        print(f"✅ Found existing global AspectType: enterprise-data-context")
         return r.json()["name"]
 
     create_url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/aspectTypes?aspectTypeId={aspect_type_id}"
@@ -242,10 +256,16 @@ def create_or_get_global_aspect_type(token):
         }
     }
     r = requests.post(create_url, headers=headers, json=payload)
+    if r.status_code in (200, 201):
+        print(f"✅ Successfully created global AspectType: enterprise-data-context")
+    elif r.status_code == 409:
+        print(f"✅ Global AspectType enterprise-data-context already exists.")
+    else:
+        print(f"⚠️ AspectType creation returned HTTP {r.status_code}: {r.text[:200]}")
     return f"projects/{PROJECT_ID}/locations/{LOCATION}/aspectTypes/{aspect_type_id}"
 
 def attach_single_aspect(args):
-    table_name, meta, token, project_number = args
+    table_name, meta, token, project_number, entry_loc = args
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     aspect_type_ref = f"{project_number}.global.enterprise-data-context"
     
@@ -267,7 +287,7 @@ def attach_single_aspect(args):
             incident_summary = base_desc
     
     entry_id = f"bigquery.googleapis.com/projects/{PROJECT_ID}/datasets/{DATASET_ID}/tables/{table_name}"
-    entry_path = f"projects/{project_number}/locations/{ENTRY_LOCATION}/entryGroups/@bigquery/entries/{entry_id}"
+    entry_path = f"projects/{project_number}/locations/{entry_loc}/entryGroups/@bigquery/entries/{entry_id}"
     url = f"https://dataplex.googleapis.com/v1/{entry_path}"
     
     aspect_payload = {
@@ -285,36 +305,69 @@ def attach_single_aspect(args):
     
     try:
         r = requests.patch(patch_url, headers=headers, json=patch_payload, timeout=15)
-        return table_name, r.status_code == 200
+        if r.status_code == 200:
+            return table_name, True, None
+        else:
+            err_detail = r.text[:200].replace("\n", " ")
+            return table_name, False, f"HTTP {r.status_code}: {err_detail}"
     except Exception as e:
-        return table_name, False
+        return table_name, False, str(e)
 
-def attach_aspects_parallel(token, project_number):
-    print(f"\nAttaching global `enterprise-data-context` aspects in parallel across {len(TABLE_METADATA)} BigQuery tables...")
+def attach_aspects_parallel(token, project_number, entry_loc):
+    total = len(TABLE_METADATA)
+    print(f"\nAttaching global `enterprise-data-context` aspects in parallel across {total} BigQuery tables (Location: {entry_loc})...")
     
-    tasks = [(t_name, meta, token, project_number) for t_name, meta in TABLE_METADATA.items()]
+    tasks = [(t_name, meta, token, project_number, entry_loc) for t_name, meta in TABLE_METADATA.items()]
     
     success_count = 0
+    completed_count = 0
+    errors = []
+    
     with ThreadPoolExecutor(max_workers=10) as executor:
-        for table_name, success in executor.map(attach_single_aspect, tasks):
+        for table_name, success, err in executor.map(attach_single_aspect, tasks):
+            completed_count += 1
             if success:
                 success_count += 1
-            if success_count % 25 == 0 or success_count == len(TABLE_METADATA):
-                print(f"  Progress: {success_count}/{len(TABLE_METADATA)} tables updated.")
+            else:
+                if len(errors) < 5:
+                    errors.append(f"{table_name} -> {err}")
+            if completed_count % 25 == 0 or completed_count == total:
+                print(f"  Progress: {success_count}/{completed_count} tables updated (Total: {total}).")
 
-    print(f"✅ Completed global aspect attachment: {success_count}/{len(TABLE_METADATA)} tables processed.\n")
+    if success_count == total:
+        print(f"✅ Completed global aspect attachment: {success_count}/{total} tables processed.\n")
+    else:
+        print(f"\n⚠️ Completed with warnings: {success_count}/{total} tables updated successfully ({total - success_count} failed).")
+        if errors:
+            print("  Sample errors encountered:")
+            for err in errors:
+                print(f"    - {err}")
+            print("\n💡 Troubleshooting Tips:")
+            print("  1. Verify your GCP user/service account has the 'roles/dataplex.metadataAdmin' or 'roles/dataplex.editor' role.")
+            print("  2. Ensure Knowledge Catalog API is enabled: `gcloud services enable dataplex.googleapis.com datacatalog.googleapis.com`")
+            print("  3. Verify your BigQuery tables exist in the dataset: `python3 scripts/01_create_schema.py && python3 scripts/11_create_extended_schema.py`\n")
 
 def main():
+    if not PROJECT_ID:
+        print("ERROR: GCP_PROJECT_ID is not set in environment or .env file.", file=sys.stderr)
+        sys.exit(1)
+        
     token = get_access_token()
     if not token:
-        print("ERROR: Could not retrieve GCP access token.", file=sys.stderr)
+        print("ERROR: Could not retrieve GCP access token. Please run `gcloud auth application-default login`.", file=sys.stderr)
         sys.exit(1)
         
     project_number = get_project_number(token)
-    print(f"GCP Project: {PROJECT_ID} (Number: {project_number}) | Aspect Location: {LOCATION} | Dataset: {DATASET_ID}")
+    if not project_number:
+        print(f"ERROR: Could not resolve GCP project number for '{PROJECT_ID}'. Please verify gcloud project access.", file=sys.stderr)
+        sys.exit(1)
+
+    # Auto-detect exact BigQuery dataset location if available
+    entry_loc = resolve_dataset_location(PROJECT_ID, DATASET_ID, ENTRY_LOCATION)
+    print(f"GCP Project: {PROJECT_ID} (Number: {project_number}) | Dataset: {DATASET_ID} (Location: {entry_loc})")
     
     create_or_get_global_aspect_type(token)
-    attach_aspects_parallel(token, project_number)
+    attach_aspects_parallel(token, project_number, entry_loc)
 
 if __name__ == "__main__":
     main()

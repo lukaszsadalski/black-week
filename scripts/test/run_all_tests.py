@@ -30,7 +30,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(TEST_DIR, "..", ".."))
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, TEST_DIR)
 
-from test_utils import load_project_env, get_project_root
+from test_utils import load_project_env, get_project_root, ensure_test_server, ensure_playwright_chromium
 
 load_project_env()
 
@@ -112,6 +112,9 @@ def main():
     test_plan = []
 
     if args.unit or args.all:
+        print("\n⚡ Ensuring local FastAPI test server and Playwright Chromium are active...")
+        ensure_test_server(8000)
+        ensure_playwright_chromium()
         test_plan.extend([
             ("Multilingual Support & 25-Language Dictionary", "scripts/test/test_multilingual_support.py"),
             ("Prompt & Grounded Table Consistency", "scripts/test/test_prompt_table_consistency.py"),

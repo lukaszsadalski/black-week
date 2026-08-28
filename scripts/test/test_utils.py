@@ -63,3 +63,69 @@ def get_bigquery_client(project_id: str = None) -> bigquery.Client:
         creds = oauth2_credentials.Credentials(token)
         return bigquery.Client(project=pid, credentials=creds)
     return bigquery.Client(project=pid)
+
+
+def ensure_test_server(port: int = 8000) -> str:
+    """
+    Ensures FastAPI server is actively responding on localhost,
+    automatically launching a background thread server if not already running.
+    """
+    import time
+    import requests
+    base_url = os.environ.get("BASE_URL", f"http://127.0.0.1:{port}")
+    try:
+        r = requests.get(f"{base_url}/api/health", timeout=1)
+        if r.status_code == 200:
+            return base_url
+    except Exception:
+        pass
+
+    try:
+        import threading
+        import uvicorn
+        root = get_project_root()
+        backend_path = os.path.join(root, "backend")
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        from app.main import app
+
+        config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
+        server = uvicorn.Server(config)
+        t = threading.Thread(target=server.run, daemon=True)
+        t.start()
+
+        for _ in range(30):
+            try:
+                r = requests.get(f"http://127.0.0.1:{port}/api/health", timeout=1)
+                if r.status_code == 200:
+                    os.environ["BASE_URL"] = f"http://127.0.0.1:{port}"
+                    return f"http://127.0.0.1:{port}"
+            except Exception:
+                time.sleep(0.1)
+    except Exception as e:
+        print(f"Warning: Could not start local background test server: {e}")
+
+    return base_url
+
+
+def ensure_playwright_chromium():
+    """
+    Ensures Playwright Chromium browser binary is installed.
+    Automatically triggers `playwright install chromium` if missing.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            try:
+                browser = p.chromium.launch(headless=True)
+                browser.close()
+                return
+            except Exception as e:
+                err_msg = str(e)
+                if "Executable doesn't exist" in err_msg or "playwright install" in err_msg or "executable" in err_msg.lower():
+                    print("⚡ Playwright Chromium browser not found. Installing Chromium automatically...")
+                    subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+    except Exception as e:
+        print(f"Notice: Playwright browser check: {e}")
+
+

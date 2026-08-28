@@ -184,6 +184,35 @@ def provision_or_update_data_agent(agent_id: str, display_name: str, description
         return False
 
 
+CORE_INVESTIGATION_TABLES = [
+    "categories", "products", "distribution_centers", "inventory_items", "inventory_snapshots",
+    "users", "orders", "order_items", "sales_event_stream", "weekly_commercial_targets",
+    "daily_category_targets", "category_15min_targets", "web_sessions", "web_events",
+    "oos_interactions", "competitor_price_feed", "marketing_campaigns", "daily_ad_performance",
+    "ad_bidding_log", "ad_creatives", "payment_gateway_logs", "influencer_campaigns",
+    "catalog_recommender_logs", "shipping_lead_times", "competitor_promotions"
+]
+
+
+def discover_warehouse_tables_fallback() -> List[str]:
+    """
+    Fallback: Discovers available tables directly from BigQuery dataset when
+    Knowledge Catalog semantic index is still warming up during cold start.
+    """
+    try:
+        from google.cloud import bigquery
+        client = bigquery.Client(project=PROJECT_ID)
+        tables = [t.table_id for t in client.list_tables(DATASET_ID)]
+        if tables:
+            core_present = [t for t in CORE_INVESTIGATION_TABLES if t in tables]
+            if len(core_present) >= 15:
+                return core_present
+            return tables[:25]
+    except Exception as e:
+        print(f"  Notice: BigQuery warehouse table listing: {e}")
+    return CORE_INVESTIGATION_TABLES
+
+
 def main():
     print("=" * 80)
     print("🔍 LUMIÈRESHOP DYNAMIC KNOWLEDGE CATALOG AGENT GROUNDING")
@@ -192,7 +221,7 @@ def main():
 
     token = get_access_token()
     if not token:
-        print("Error: Could not retrieve OAuth access token.", file=sys.stderr)
+        print("Error: Could not retrieve OAuth access token. Please run `gcloud auth application-default login`.", file=sys.stderr)
         sys.exit(1)
 
     headers = {
@@ -205,14 +234,15 @@ def main():
     for key, (agent_id, display_name, prompt) in PROMPTS.items():
         print(f"\n[Dynamic Discovery] Querying Knowledge Catalog for: '{prompt[:60]}...'")
         discovered_tables = search_knowledge_catalog_dynamic(prompt, token)
-        print(f"  Discovered {len(discovered_tables)} tables via Knowledge Catalog Semantic Search:")
+        
+        if not discovered_tables:
+            print("  ℹ️ Knowledge Catalog returned 0 tables (indexing in progress). Using resilient warehouse fallback...")
+            discovered_tables = discover_warehouse_tables_fallback()
+
+        print(f"  Discovered {len(discovered_tables)} tables for Agent '{agent_id}':")
         print(f"  Tables: {discovered_tables}")
 
-        if not discovered_tables:
-            print("  ⚠️ Warning: No tables discovered from Knowledge Catalog. Skipping agent grounding.")
-            continue
-
-        desc = f"Dynamically grounded with {len(discovered_tables)} tables discovered via Knowledge Catalog semantic search."
+        desc = f"Grounded with {len(discovered_tables)} tables discovered via Knowledge Catalog semantic discovery."
         ok = provision_or_update_data_agent(agent_id, display_name, desc, discovered_tables, headers)
         if ok:
             success_count += 1

@@ -7,10 +7,10 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(TEST_DIR, "..", ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
-from test_utils import load_project_env
+from test_utils import load_project_env, ensure_test_server
 load_project_env()
 
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:8000")
+BASE_URL = ensure_test_server(8000)
 
 async def test_consistency():
     async with async_playwright() as p:

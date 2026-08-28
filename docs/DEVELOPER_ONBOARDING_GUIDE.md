@@ -213,6 +213,7 @@ If you need to re-provision the BigQuery dataset or re-seed the environment from
 
 | Step | Script | Description |
 |---|---|---|
+| Reset | `python3 scripts/cleanup_knowledge_catalog.py` | Safely purges Knowledge Catalog glossaries, AspectTypes, and Data Agents. |
 | 01 | `python3 scripts/01_create_schema.py` | Creates core 20 BigQuery tables in `ecommerce_dw`. |
 | 02 | `python3 scripts/02_generate_data.py` | Seeds Black Week operational data (Nov 23–27). |
 | 03 | `python3 scripts/04_extend_log_schema.py` | Creates `catalog_recommender_logs`, `ad_bidding_log`, etc. |

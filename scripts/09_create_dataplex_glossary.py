@@ -35,9 +35,9 @@ def load_dotenv():
 load_dotenv()
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
-DATASET_ID = os.environ.get("BIGQUERY_DATASET_ID", "ecommerce_dw")
+DATASET_ID = os.environ.get("BQ_DATASET_ID", os.environ.get("BIGQUERY_DATASET_ID", "ecommerce_dw"))
 LOCATION = "global"
-BQ_LOCATION = os.environ.get("BIGQUERY_LOCATION", "europe-west4")
+BQ_LOCATION = os.environ.get("BQ_LOCATION", os.environ.get("BIGQUERY_LOCATION", "us-central1"))
 GLOSSARY_ID = "ecommerce-glossary"
 
 

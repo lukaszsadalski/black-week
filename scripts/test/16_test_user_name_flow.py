@@ -33,6 +33,7 @@ sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "backend"))
 
 from app.config import PROJECT_ID, DATASET_ID, USER_NAME_SCREEN
+from test_utils import ensure_playwright_chromium
 
 
 def test_api_health():
@@ -59,9 +60,8 @@ def test_browser_screen_on_flow():
     server = uvicorn.Server(config)
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
-    time.sleep(1.5)
-
     base_url = "http://127.0.0.1:8005"
+    ensure_playwright_chromium()
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)

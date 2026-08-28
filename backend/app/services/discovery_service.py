@@ -29,6 +29,16 @@ from app.config import PROJECT_ID, DATASET_ID
 from app.services.ca_service import get_access_token
 
 
+CORE_INVESTIGATION_TABLES = [
+    "categories", "products", "distribution_centers", "inventory_items", "inventory_snapshots",
+    "users", "orders", "order_items", "sales_event_stream", "weekly_commercial_targets",
+    "daily_category_targets", "category_15min_targets", "web_sessions", "web_events",
+    "oos_interactions", "competitor_price_feed", "marketing_campaigns", "daily_ad_performance",
+    "ad_bidding_log", "ad_creatives", "payment_gateway_logs", "influencer_campaigns",
+    "catalog_recommender_logs", "shipping_lead_times", "competitor_promotions"
+]
+
+
 class KnowledgeDiscoveryService:
     """
     Service client for Google Cloud Knowledge Catalog dynamic discovery and context hydration.
@@ -51,6 +61,7 @@ class KnowledgeDiscoveryService:
         self.project_id = project_id
         self.dataset_id = dataset_id
         self.location = location
+        self.entry_location = os.environ.get("BQ_LOCATION", "us-central1").lower()
         self.glossary_id = "ecommerce-glossary"
 
     def _get_auth_token(self) -> str:
@@ -168,8 +179,8 @@ class KnowledgeDiscoveryService:
         # ==============================================================================
         for table in list(discovered_tables)[:10]:
             try:
-                bq_entry = f"projects/{self.project_id}/locations/europe-west4/entryGroups/@bigquery/entries/bigquery.googleapis.com/projects/{self.project_id}/datasets/{self.dataset_id}/tables/{table}"
-                lookup_url = f"https://dataplex.googleapis.com/v1/projects/{self.project_id}/locations/europe-west4:lookupEntryLinks?entry={bq_entry}"
+                bq_entry = f"projects/{self.project_id}/locations/{self.entry_location}/entryGroups/@bigquery/entries/bigquery.googleapis.com/projects/{self.project_id}/datasets/{self.dataset_id}/tables/{table}"
+                lookup_url = f"https://dataplex.googleapis.com/v1/projects/{self.project_id}/locations/{self.entry_location}:lookupEntryLinks?entry={bq_entry}"
                 link_res = requests.get(lookup_url, headers=headers, timeout=5)
                 if link_res.status_code == 200:
                     links = link_res.json().get("entryLinks", [])
@@ -179,6 +190,11 @@ class KnowledgeDiscoveryService:
                             discovered_links.add(link_name.split("/")[-1])
             except Exception:
                 pass
+
+        # If semantic indexing is still warming up during cold-start, ensure core tables are present
+        if len(discovered_tables) < 20:
+            for t in CORE_INVESTIGATION_TABLES:
+                discovered_tables.add(t)
 
         # Estimate entry links based on discovered tables and terms if lookup returns baseline
         entry_link_count = max(len(discovered_links), len(discovered_tables) + len(discovered_terms))

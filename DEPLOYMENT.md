@@ -22,6 +22,15 @@ gcloud services enable \
   --project=YOUR_GCP_PROJECT_ID
 ```
 
+### Step 1.1b: Grant Developer Provisioning IAM Roles (If not Project Owner)
+```bash
+for ROLE in roles/bigquery.admin roles/dataplex.metadataAdmin roles/datacatalog.admin roles/aiplatform.user; do
+  gcloud projects add-iam-policy-binding YOUR_GCP_PROJECT_ID \
+    --member="user:$(gcloud config get-value account)" \
+    --role="$ROLE"
+done
+```
+
 ### Step 1.2: Configure Environment Variables (`.env`)
 Verify the centralized `.env` configuration file:
 

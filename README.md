@@ -169,6 +169,20 @@ gcloud services enable \
 
 ---
 
+### Step 4.2b: Grant Developer Provisioning Roles (If not Project Owner)
+
+If your GCP account is not already a **Project Owner/Editor**, run this command to grant the necessary provisioning and metadata management permissions:
+
+```bash
+for ROLE in roles/bigquery.admin roles/dataplex.metadataAdmin roles/datacatalog.admin roles/aiplatform.user; do
+  gcloud projects add-iam-policy-binding YOUR_GCP_PROJECT_ID \
+    --member="user:$(gcloud config get-value account)" \
+    --role="$ROLE"
+done
+```
+
+---
+
 ### Step 4.3: Configure Environment Variables & Authenticate
 
 Copy the environment template file:
@@ -457,6 +471,7 @@ lumiere-shop/
 │   ├── 17_add_menu_item_and_agent_no_to_logs.py # DDL adding menu_item and agent_no to logs
 │   ├── apply_bq_descriptions.py            # BigQuery table and column metadata annotator
 │   ├── bootstrap_new_project.py            # Turnkey automated 7-stage cloud deployment orchestrator
+│   ├── cleanup_knowledge_catalog.py        # Knowledge Catalog & Data Agent reset & purge tool
 │   ├── expand_business_glossary.py         # 85-term business taxonomy generator
 │   ├── export_bq_tables_to_csv.py          # BigQuery dataset CSV exporter & archiver
 │   ├── export_dataset_summary.py           # Markdown schema generator with placeholders
