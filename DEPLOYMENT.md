@@ -6,13 +6,15 @@ This document outlines the step-by-step instructions to deploy, run, seed, and v
 
 ## 1. Environment Setup & API Enablement
 
-### Step 1.1: Enable All 10 Required Google Cloud APIs
+### Step 1.1: Enable All 12 Required Google Cloud APIs
 ```bash
 gcloud services enable \
   bigquery.googleapis.com \
+  bigqueryconnection.googleapis.com \
   dataplex.googleapis.com \
   datacatalog.googleapis.com \
   geminidataanalytics.googleapis.com \
+  cloudaicompanion.googleapis.com \
   aiplatform.googleapis.com \
   run.googleapis.com \
   cloudbuild.googleapis.com \

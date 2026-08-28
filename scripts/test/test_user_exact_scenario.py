@@ -1,5 +1,17 @@
+import os
+import sys
 import asyncio
 from playwright.async_api import async_playwright
+
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(TEST_DIR, "..", ".."))
+sys.path.insert(0, PROJECT_ROOT)
+
+from test_utils import load_project_env, ensure_test_server, ensure_playwright_chromium
+load_project_env()
+
+BASE_URL = ensure_test_server(8000)
+ensure_playwright_chromium()
 
 async def test_user_scenario():
     async with async_playwright() as p:
@@ -11,11 +23,12 @@ async def test_user_scenario():
 
         print("================================================================================")
         print("VERIFYING USER SCENARIO: PROMPT B (13 TABLES) -> WORKSPACE & CONVERSATION")
+        print(f"Target URL: {BASE_URL}")
         print("================================================================================")
 
         # 1. Open Localhost
-        print("1. Opening http://localhost:8000...")
-        await page.goto("http://localhost:8000", wait_until="networkidle")
+        print(f"1. Opening {BASE_URL}...")
+        await page.goto(BASE_URL, wait_until="networkidle")
 
         # 2. Triple Click
         print("2. Triple clicking 'Compare prompts'...")

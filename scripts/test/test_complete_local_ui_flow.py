@@ -1,5 +1,17 @@
+import os
+import sys
 import asyncio
 from playwright.async_api import async_playwright
+
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(TEST_DIR, "..", ".."))
+sys.path.insert(0, PROJECT_ROOT)
+
+from test_utils import load_project_env, ensure_test_server, ensure_playwright_chromium
+load_project_env()
+
+BASE_URL = ensure_test_server(8000)
+ensure_playwright_chromium()
 
 async def test_full_flow():
     async with async_playwright() as p:
@@ -11,11 +23,12 @@ async def test_full_flow():
 
         print("================================================================================")
         print("LOCAL UI END-TO-END AUTOMATED INTERACTION TEST (PORT 8000)")
+        print(f"Target URL: {BASE_URL}")
         print("================================================================================")
 
         # 1. Open Localhost
-        print("1. Navigating to http://localhost:8000...")
-        await page.goto("http://localhost:8000", wait_until="networkidle")
+        print(f"1. Navigating to {BASE_URL}...")
+        await page.goto(BASE_URL, wait_until="networkidle")
         
         is_alert_visible = await page.locator("#alertView").is_visible()
         is_workspace_visible = await page.locator("#workspaceView").is_visible()

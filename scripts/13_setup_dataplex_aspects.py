@@ -233,7 +233,11 @@ def get_project_number(token):
 
 def create_or_get_global_aspect_type(token):
     aspect_type_id = "enterprise-data-context"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "x-goog-user-project": PROJECT_ID
+    }
     url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/aspectTypes/{aspect_type_id}"
     
     r = requests.get(url, headers=headers)
@@ -266,8 +270,11 @@ def create_or_get_global_aspect_type(token):
 
 def attach_single_aspect(args):
     table_name, meta, token, project_number, entry_loc = args
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    aspect_type_ref = f"{project_number}.global.enterprise-data-context"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "x-goog-user-project": PROJECT_ID
+    }
     
     labels = meta.get("labels", {})
     domain = labels.get("domain", "general_enterprise")
@@ -287,31 +294,44 @@ def attach_single_aspect(args):
             incident_summary = base_desc
     
     entry_id = f"bigquery.googleapis.com/projects/{PROJECT_ID}/datasets/{DATASET_ID}/tables/{table_name}"
-    entry_path = f"projects/{project_number}/locations/{entry_loc}/entryGroups/@bigquery/entries/{entry_id}"
-    url = f"https://dataplex.googleapis.com/v1/{entry_path}"
     
-    aspect_payload = {
-        "aspectType": f"projects/{project_number}/locations/global/aspectTypes/enterprise-data-context",
-        "data": {
-            "business_domain": domain,
-            "data_tier": tier,
-            "operational_role": role,
-            "incident_relevance_summary": incident_summary
+    # Try formats: 1) numeric project number, 2) alphanumeric project ID
+    ident_pairs = [
+        (project_number, f"projects/{project_number}/locations/global/aspectTypes/enterprise-data-context", f"{project_number}.global.enterprise-data-context"),
+        (PROJECT_ID, f"projects/{PROJECT_ID}/locations/global/aspectTypes/enterprise-data-context", f"{PROJECT_ID}.global.enterprise-data-context")
+    ]
+    
+    last_err = ""
+    for proj_ident, aspect_type_uri, aspect_ref_key in ident_pairs:
+        if not proj_ident:
+            continue
+        entry_path = f"projects/{proj_ident}/locations/{entry_loc}/entryGroups/@bigquery/entries/{entry_id}"
+        url = f"https://dataplex.googleapis.com/v1/{entry_path}"
+        
+        aspect_payload = {
+            "aspectType": aspect_type_uri,
+            "data": {
+                "business_domain": domain,
+                "data_tier": tier,
+                "operational_role": role,
+                "incident_relevance_summary": incident_summary
+            }
         }
-    }
-    
-    patch_payload = {"aspects": {aspect_type_ref: aspect_payload}}
-    patch_url = f"{url}?updateMask=aspects"
-    
-    try:
-        r = requests.patch(patch_url, headers=headers, json=patch_payload, timeout=15)
-        if r.status_code == 200:
-            return table_name, True, None
-        else:
-            err_detail = r.text[:200].replace("\n", " ")
-            return table_name, False, f"HTTP {r.status_code}: {err_detail}"
-    except Exception as e:
-        return table_name, False, str(e)
+        
+        patch_payload = {"aspects": {aspect_ref_key: aspect_payload}}
+        patch_url = f"{url}?updateMask=aspects"
+        
+        try:
+            r = requests.patch(patch_url, headers=headers, json=patch_payload, timeout=15)
+            if r.status_code == 200:
+                return table_name, True, None
+            else:
+                err_detail = r.text[:200].replace("\n", " ")
+                last_err = f"HTTP {r.status_code}: {err_detail}"
+        except Exception as e:
+            last_err = str(e)
+            
+    return table_name, False, last_err
 
 def attach_aspects_parallel(token, project_number, entry_loc):
     total = len(TABLE_METADATA)

@@ -138,14 +138,16 @@ pip install -r backend/requirements.txt
 
 ### Step 4.2: Enable Google Cloud APIs
 
-Run the following command to enable all **10 required Google Cloud APIs**:
+Run the following command to enable all **12 required Google Cloud APIs**:
 
 ```bash
 gcloud services enable \
   bigquery.googleapis.com \
+  bigqueryconnection.googleapis.com \
   dataplex.googleapis.com \
   datacatalog.googleapis.com \
   geminidataanalytics.googleapis.com \
+  cloudaicompanion.googleapis.com \
   aiplatform.googleapis.com \
   run.googleapis.com \
   cloudbuild.googleapis.com \
@@ -158,9 +160,11 @@ gcloud services enable \
 | API Service | Key Purpose in LumièreShop |
 | :--- | :--- |
 | **`bigquery.googleapis.com`** | 140-table enterprise e-commerce data warehouse & analytical SQL processing. |
+| **`bigqueryconnection.googleapis.com`** | BigQuery Connection API for external agent & metadata bindings. |
 | **`dataplex.googleapis.com`** | Knowledge Catalog semantic search, AspectTypes, and Data Profiling. |
 | **`datacatalog.googleapis.com`** | Knowledge Catalog business glossary taxonomies & EntryLinks metadata. |
 | **`geminidataanalytics.googleapis.com`** | Gemini Enterprise Agent Platform Conversational Analytics Data Agents & stateful dialogue sessions. |
+| **`cloudaicompanion.googleapis.com`** | Cloud AI Companion API powering Gemini in BigQuery Studio and GCP Console Conversational Analytics UI. |
 | **`aiplatform.googleapis.com`** | Gemini 3.7 Flash LLM evaluation engine powering Prompt Comparison Studio. |
 | **`run.googleapis.com`** | Fully managed serverless container hosting for the FastAPI application. |
 | **`cloudbuild.googleapis.com`** | Automated container image building and Artifact Registry push. |
@@ -471,6 +475,7 @@ lumiere-shop/
 │   ├── 17_add_menu_item_and_agent_no_to_logs.py # DDL adding menu_item and agent_no to logs
 │   ├── apply_bq_descriptions.py            # BigQuery table and column metadata annotator
 │   ├── bootstrap_new_project.py            # Turnkey automated 7-stage cloud deployment orchestrator
+│   ├── cleanup_data_agents.py              # Gemini BigQuery Data Agents deletion & reset tool
 │   ├── cleanup_knowledge_catalog.py        # Knowledge Catalog & Data Agent reset & purge tool
 │   ├── expand_business_glossary.py         # 85-term business taxonomy generator
 │   ├── export_bq_tables_to_csv.py          # BigQuery dataset CSV exporter & archiver

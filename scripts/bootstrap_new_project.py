@@ -115,7 +115,32 @@ def check_preflight():
         print("   Please authenticate with: `gcloud auth login` and `gcloud auth application-default login`.", file=sys.stderr)
         sys.exit(1)
 
-    print("✅ Google Cloud authentication and environment configuration verified.\n")
+    print("✅ Google Cloud authentication and environment configuration verified.")
+
+    # Check and enable required GCP APIs
+    required_apis = [
+        "bigquery.googleapis.com",
+        "bigqueryconnection.googleapis.com",
+        "dataplex.googleapis.com",
+        "datacatalog.googleapis.com",
+        "geminidataanalytics.googleapis.com",
+        "cloudaicompanion.googleapis.com",
+        "aiplatform.googleapis.com",
+        "run.googleapis.com",
+        "cloudbuild.googleapis.com",
+        "artifactregistry.googleapis.com",
+        "iam.googleapis.com",
+        "cloudresourcemanager.googleapis.com"
+    ]
+    print("\n⚡ Ensuring all 12 required Google Cloud APIs are enabled on project...")
+    for cmd in gcloud_cmds:
+        try:
+            res = subprocess.run([cmd, "services", "enable", *required_apis, f"--project={PROJECT_ID}"], capture_output=True, text=True, timeout=60)
+            if res.returncode == 0:
+                print("✅ All 12 required Google Cloud APIs verified and active.\n")
+                break
+        except Exception:
+            continue
 
 
 def run_stage(title: str, script_rel_path: str, dry_run: bool = False) -> bool:
