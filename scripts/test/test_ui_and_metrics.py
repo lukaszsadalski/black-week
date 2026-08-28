@@ -158,6 +158,17 @@ def run_playwright_ui_scrape_and_screenshots(output_dir):
         desktop_page = browser.new_page(viewport={"width": 1920, "height": 1080})
         desktop_page.goto(BASE_URL)
         desktop_page.wait_for_load_state("networkidle")
+
+        # Bypass Screen 0 (User Name Screen) if active
+        try:
+            desktop_page.locator("#userNameView:not(.hidden)").wait_for(state="visible", timeout=1500)
+            print("   Screen 0 detected. Submitting operator username...")
+            desktop_page.locator("#userNameInput").fill("DevOperator")
+            desktop_page.locator("#userNameSubmitBtn").click()
+            desktop_page.locator("#alertView:not(.hidden)").wait_for(state="visible", timeout=5000)
+            time.sleep(0.3)
+        except Exception:
+            pass
         
         desktop_screenshot = os.path.join(output_dir, "google_workspace_alert_view.png")
         desktop_page.screenshot(path=desktop_screenshot, full_page=True)

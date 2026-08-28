@@ -166,14 +166,29 @@ def deploy_glossary():
             "description": desc_text[:1000],
         }
 
+        success = False
         if term_check.status_code == 200:
             update_res = requests.patch(f"{term_url}?updateMask=displayName,description", headers=headers, json=term_payload)
             if update_res.status_code == 200:
-                created_term_count += 1
+                success = True
+            else:
+                print(f"  ⚠️ Warning: Failed to update term `{term_id}` (HTTP {update_res.status_code}): {update_res.text[:120]}")
         else:
             create_term_res = requests.post(f"{glossary_url}/terms?termId={term_id}", headers=headers, json=term_payload)
             if create_term_res.status_code in [200, 201]:
-                created_term_count += 1
+                success = True
+            elif create_term_res.status_code == 409:
+                # Already exists, fallback to PATCH update
+                update_res = requests.patch(f"{term_url}?updateMask=displayName,description", headers=headers, json=term_payload)
+                if update_res.status_code == 200:
+                    success = True
+                else:
+                    print(f"  ⚠️ Warning: Failed to update existing term `{term_id}` (HTTP {update_res.status_code}): {update_res.text[:120]}")
+            else:
+                print(f"  ⚠️ Warning: Failed to create term `{term_id}` (HTTP {create_term_res.status_code}): {create_term_res.text[:120]}")
+
+        if success:
+            created_term_count += 1
 
     print(f"  Terms deployed with clean descriptions: {created_term_count}/{len(terms)}")
 

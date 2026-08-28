@@ -16,6 +16,7 @@ Usage:
 
 import json
 import os
+import time
 import subprocess
 import sys
 import requests
@@ -302,34 +303,39 @@ def attach_single_aspect(args):
     ]
     
     last_err = ""
-    for proj_ident, aspect_type_uri, aspect_ref_key in ident_pairs:
-        if not proj_ident:
-            continue
-        entry_path = f"projects/{proj_ident}/locations/{entry_loc}/entryGroups/@bigquery/entries/{entry_id}"
-        url = f"https://dataplex.googleapis.com/v1/{entry_path}"
-        
-        aspect_payload = {
-            "aspectType": aspect_type_uri,
-            "data": {
-                "business_domain": domain,
-                "data_tier": tier,
-                "operational_role": role,
-                "incident_relevance_summary": incident_summary
+    for attempt in range(3):
+        for proj_ident, aspect_type_uri, aspect_ref_key in ident_pairs:
+            if not proj_ident:
+                continue
+            entry_path = f"projects/{proj_ident}/locations/{entry_loc}/entryGroups/@bigquery/entries/{entry_id}"
+            url = f"https://dataplex.googleapis.com/v1/{entry_path}"
+            
+            aspect_payload = {
+                "aspectType": aspect_type_uri,
+                "data": {
+                    "business_domain": domain,
+                    "data_tier": tier,
+                    "operational_role": role,
+                    "incident_relevance_summary": incident_summary
+                }
             }
-        }
+            
+            patch_payload = {"aspects": {aspect_ref_key: aspect_payload}}
+            patch_url = f"{url}?updateMask=aspects"
+            
+            try:
+                r = requests.patch(patch_url, headers=headers, json=patch_payload, timeout=20)
+                if r.status_code == 200:
+                    return table_name, True, None
+                else:
+                    err_detail = r.text[:200].replace("\n", " ")
+                    last_err = f"HTTP {r.status_code}: {err_detail}"
+            except Exception as e:
+                last_err = str(e)
         
-        patch_payload = {"aspects": {aspect_ref_key: aspect_payload}}
-        patch_url = f"{url}?updateMask=aspects"
-        
-        try:
-            r = requests.patch(patch_url, headers=headers, json=patch_payload, timeout=15)
-            if r.status_code == 200:
-                return table_name, True, None
-            else:
-                err_detail = r.text[:200].replace("\n", " ")
-                last_err = f"HTTP {r.status_code}: {err_detail}"
-        except Exception as e:
-            last_err = str(e)
+        # Exponential backoff on rate limits or concurrency locks
+        if attempt < 2:
+            time.sleep(1.0 * (attempt + 1))
             
     return table_name, False, last_err
 
@@ -343,7 +349,7 @@ def attach_aspects_parallel(token, project_number, entry_loc):
     completed_count = 0
     errors = []
     
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=5) as executor:
         for table_name, success, err in executor.map(attach_single_aspect, tasks):
             completed_count += 1
             if success:

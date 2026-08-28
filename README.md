@@ -70,36 +70,6 @@ ecommerce_dw (140 Tables)
 └── 🧪 Sandbox Tier (10 Tables)   - Developer sandboxes, churn model features, legacy 2023 archives
 ```
 
-### 🎯 Crucial Incident Investigation Tables
-
-| Domain | Table Name | Tier | Primary Incident Role |
-| :--- | :--- | :--- | :--- |
-| **Catalog & Targets** | `categories` | Silver | Product category taxonomy & hierarchy |
-| | `daily_category_targets` | Gold | Daily revenue & AOV targets for Black Week |
-| | `weekly_commercial_targets`| Gold | Weekly commercial KPI goals & target margins |
-| | `category_15min_targets` | Gold | Real-time pacing targets across Black Friday |
-| | `category_hierarchy_paths` | Gold | Category rollup paths and navigation nodes |
-| **Transactions & Web**| `orders` | Silver | Completed customer orders & order statuses |
-| | `order_items` | Silver | Line-item prices, quantities, and discounts |
-| | `products` | Silver | Product master catalog, retail prices, cost |
-| | `users` | Silver | Customer profiles, cohorts, registration dates |
-| | `web_sessions` | Silver | Hourly landing traffic, device categories, channels |
-| | `web_events` | Bronze | High-volume clickstream events (17.3M rows) |
-| **Advertising & Promo**| `marketing_campaigns` | Silver | Paid campaigns, target categories, bidding strategies |
-| | `daily_ad_performance` | Silver | Daily ad spend, impressions, clicks, conversions |
-| | `ad_bidding_log` | Bronze | Meta/Google automated bid adjustments & throttle logs |
-| | `ad_creatives` | Silver | Creative assets, fatigue scores, headline tests |
-| | `stg_meta_ad_insights_raw`| Bronze | Raw API payload ingest from Meta Graph API |
-| | `influencer_campaigns` | Silver | Creator partnerships, affiliate discount codes |
-| | `promotions` | Silver | Storewide promotion schedules & coupon limits |
-| **Supply & Inventory** | `inventory_items` | Silver | Warehouse stock balances & safety stock thresholds |
-| | `inventory_snapshots` | Silver | Daily stock history across European DCs |
-| | `oos_interactions` | Silver | Out-of-Stock customer encounters & lost sales |
-| | `shipping_lead_times` | Silver | Carrier transit times and dispatch promises |
-| **Market & Algorithms**| `competitor_price_feed` | Silver | Competitor pricing scrapes across top 500 SKUs |
-| | `competitor_promotions` | Silver | Competitor flash sales & discount depth tracking |
-| | `catalog_recommender_logs`| Silver | Personalized recommendation serving & fallback logs |
-
 ### ⏱️ Point-in-Time Temporal Calibration
 - **Simulation Cutoff Timestamp**: **Friday, Nov 27, 2026 at 14:30:00 UTC** (strictly enforced; 0 actual records exist post-cutoff).
 - **Target Horizon**: Full 8-day promotional window from Monday, Nov 23 to Cyber Monday, Nov 30, 2026.

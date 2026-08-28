@@ -1362,7 +1362,7 @@
         ]
       },
       {
-        "id": "email_deliverability_rate",
+        "id": "email_campaign_deliverability_rate",
         "display_name": "Email Campaign Deliverability Rate",
         "category_id": "lifecycle_marketing",
         "definition": "Percentage of dispatched promotional and lifecycle emails successfully accepted by recipient mail servers without hard or soft bounces.",

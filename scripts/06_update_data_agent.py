@@ -173,8 +173,31 @@ def provision_or_update_data_agent(agent_id: str, display_name: str, description
             if create_res.status_code in [200, 201]:
                 print(f"  ✅ Data Agent '{agent_id}' created and grounded successfully ({len(table_refs)} tables).")
                 return True
+            elif create_res.status_code == 400 and "SOFT_DELETED" in create_res.text:
+                print(f"  ℹ️ Agent '{agent_id}' is in SOFT_DELETED state. Restoring via :undelete...")
+                undelete_url = f"{agent_url}:undelete"
+                requests.post(undelete_url, headers=headers, json={}, timeout=20)
+                patch_res = requests.patch(patch_url, headers=headers, json=payload, timeout=30)
+                if patch_res.status_code in [200, 201]:
+                    print(f"  ✅ Data Agent '{agent_id}' undeleted and grounded successfully ({len(table_refs)} tables).")
+                    return True
+            print(f"  ❌ Failed to create agent '{agent_id}' (HTTP {create_res.status_code}): {create_res.text}", file=sys.stderr)
+            return False
+        elif res.status_code == 400 and "SOFT_DELETED" in res.text:
+            print(f"  ℹ️ Agent '{agent_id}' is in SOFT_DELETED state. Restoring via :undelete...")
+            undelete_url = f"{agent_url}:undelete"
+            und_res = requests.post(undelete_url, headers=headers, json={}, timeout=20)
+            if und_res.status_code in [200, 201]:
+                print(f"  ✅ Restored agent '{agent_id}'. Now applying table groundings...")
+                patch_res = requests.patch(patch_url, headers=headers, json=payload, timeout=30)
+                if patch_res.status_code in [200, 201]:
+                    print(f"  ✅ Data Agent '{agent_id}' grounded successfully ({len(table_refs)} tables).")
+                    return True
+                else:
+                    print(f"  ❌ Failed to patch agent after undelete (HTTP {patch_res.status_code}): {patch_res.text}", file=sys.stderr)
+                    return False
             else:
-                print(f"  ❌ Failed to create agent '{agent_id}' (HTTP {create_res.status_code}): {create_res.text}", file=sys.stderr)
+                print(f"  ❌ Failed to undelete agent '{agent_id}' (HTTP {und_res.status_code}): {und_res.text}", file=sys.stderr)
                 return False
         else:
             print(f"  ❌ Failed to patch agent '{agent_id}' (HTTP {res.status_code}): {res.text}", file=sys.stderr)
