@@ -1,0 +1,83 @@
+# ==============================================================================
+# Environment Variables, Secrets & GCP Credentials
+# ==============================================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*credentials*.json
+*service_account*.json
+*sa_key*.json
+gcp_token*
+
+# ==============================================================================
+# Internal Agent & Development Work Logs
+# ==============================================================================
+entry/
+backup/
+TECHNICAL_SPECIFICATION.md
+CASE_STUDY.md
+GEMINI.md
+SCRATCHPAD.md
+PROGRESS.md
+POSTMORTEM.md
+PROJECT_CONTEXT.md
+jetski_conversation_log.md
+
+# ==============================================================================
+# Python & Virtual Environments
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ==============================================================================
+# Node / Frontend Caches
+# ==============================================================================
+node_modules/
+.next/
+.npm/
+
+# ==============================================================================
+# IDEs & System Files
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==============================================================================
+# Local Scratch Scripts, Temporary Files & Backups
+# ==============================================================================
+scratch/
+tmp/
+temp/
+backup/
+backups/
+*.bak
+*.tmp
+exports/
+*.tar.gz
+*.zip
+
+# ==============================================================================
+# Local Test & Execution Logs
+# ==============================================================================
+*.log
+test-output/

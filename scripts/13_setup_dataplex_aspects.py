@@ -1,0 +1,320 @@
+#!/usr/bin/env python3
+"""
+Phase 13: Google Cloud Knowledge Catalog Custom Metadata Aspect Setup Script
+=============================================================================
+Creates the `enterprise-data-context` AspectType in Google Cloud Knowledge Catalog
+(location: `global`) and attaches structured governance metadata aspects across all
+140 BigQuery warehouse tables in `ecommerce_dw`.
+
+This structured metadata layer enables Knowledge Catalog semantic search to index
+forensic diagnostic summaries, grain definitions, metric measures, and relationship links.
+
+Usage:
+------
+  python3 scripts/13_setup_dataplex_aspects.py
+"""
+
+import json
+import os
+import subprocess
+import sys
+import requests
+from concurrent.futures import ThreadPoolExecutor
+
+
+def load_dotenv():
+    """Parses root-level .env file into os.environ."""
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    os.environ.setdefault(key.strip(), value.strip().strip("'\""))
+
+
+load_dotenv()
+
+PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
+LOCATION = "global"
+ENTRY_LOCATION = os.environ.get("BQ_LOCATION", "us-central1")
+DATASET_ID = os.environ.get("BQ_DATASET_ID", "ecommerce_dw")
+
+# Import the 130+ table metadata dictionary from apply_bq_descriptions
+from apply_bq_descriptions import TABLE_METADATA
+
+# Explicit rich context for the 25 crucial forensic investigation tables (PRESERVED 100%)
+CRUCIAL_ASPECT_CONTEXT = {
+    "categories": (
+        "Master product category taxonomy and merchandising hierarchy. Essential for Black Friday 14:30 root cause "
+        "analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Used to partition commercial intake "
+        "targets and actual sales revenue by category to isolate the EUR 530,000 revenue deficit in the Beauty category."
+    ),
+    "products": (
+        "Master product catalog, default selling prices, cost of goods, and brand metadata. Essential for Black Friday 14:30 root cause "
+        "analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Identifies hero revenue drivers "
+        "(SKU 1001, 1002, 1003) experiencing stockouts, lost demand, and margin erosion during peak commercial sales pacing."
+    ),
+    "distribution_centers": (
+        "Regional warehouse fulfillment hubs and logistics centers (Paris Hub DC1, Frankfurt Hub DC2). Essential for Black Friday 14:30 "
+        "root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Identifies regional inventory "
+        "allocation, out-of-stock warehouse locations, and carrier dispatch bottlenecks causing revenue underperformance."
+    ),
+    "inventory_items": (
+        "Real-time master stock allocations, warehouse batch availability, and safety stock thresholds. Essential for Black Friday 14:30 "
+        "root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Tracks physical inventory "
+        "depletion and stock buffer exhaustion during Black Week sales waves."
+    ),
+    "inventory_snapshots": (
+        "Historical hourly and daily inventory snapshots tracking stock depletion and stockout timelines. Essential for Black Friday 14:30 "
+        "root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Captures the exact zero-stock "
+        "duration and stockout timestamps for Beauty hero items triggering EUR 530k in lost sales."
+    ),
+    "users": (
+        "Registered customer accounts, country codes, geographic cohorts, and account creation dates. Essential for Black Friday 14:30 "
+        "root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Segmenting buyer behavior and "
+        "regional conversion variations."
+    ),
+    "orders": (
+        "Master order transactions, order timestamps, status, gross revenue, net revenue, and promo discounts. Central fact table for "
+        "Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Quantifies the "
+        "overall top-line commercial shortfall and order volume gap."
+    ),
+    "order_items": (
+        "Line-item level order transactions detailing purchased SKUs, unit quantities, item prices, and margins. Central fact table for "
+        "Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Computes SKU-level "
+        "revenue contribution, basket sizes, and category-level commercial deficits."
+    ),
+    "sales_event_stream": (
+        "Real-time streaming transactional event feed capturing high-frequency sales events and intra-hour velocity. Central root cause table "
+        "for Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Identifies "
+        "the sudden intraday drop in intake velocity across Friday afternoon."
+    ),
+    "weekly_commercial_targets": (
+        "Executive weekly revenue budgets and targets by domain and country. Benchmark baseline for Black Friday 14:30 root cause "
+        "analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Establishes the EUR 1,750,000 Beauty commercial target."
+    ),
+    "daily_category_targets": (
+        "Daily commercial revenue targets, planned conversion rates, target ROAS, and expected order volume by category. Benchmark baseline table "
+        "for Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Defines the "
+        "EUR 795,000 Friday target for the Beauty category against actual intake."
+    ),
+    "category_15min_targets": (
+        "Intraday 15-minute expected revenue target curves and pacing baselines by category. Time-series benchmark table for Black Friday 14:30 "
+        "root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Exposes the intraday divergence between "
+        "expected pacing and actual realized revenue."
+    ),
+    "web_sessions": (
+        "Digital storefront user traffic sessions, device types, landing pages, and traffic channels. Digital experience diagnostic table for "
+        "Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Confirms healthy "
+        "traffic volume to rule out site outage."
+    ),
+    "web_events": (
+        "High-volume clickstream event logs tracking page views, search queries, cart additions, and checkout steps. Digital experience root cause table "
+        "for Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Isolates conversion funnel "
+        "bottlenecks and cart drop-offs."
+    ),
+    "oos_interactions": (
+        "Out-of-stock telemetry logging user attempts to purchase zero-stock SKUs, waitlist joins, and bounce events. Core root cause table for "
+        "Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Quantifies EUR 530,000 "
+        "in lost consumer demand directly caused by Beauty inventory exhaustion."
+    ),
+    "competitor_price_feed": (
+        "Hourly competitor pricing scrapes, market discounts, and matched SKU price indices across EU retailers. Commercial pricing diagnostic table "
+        "for Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Rules out competitor "
+        "price undercutting as cause of deficit."
+    ),
+    "marketing_campaigns": (
+        "Paid acquisition campaign master directory, channel allocations, and daily budget caps (Google Search, Meta Ads, TikTok). "
+        "Marketing diagnostic table for Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales."
+    ),
+    "daily_ad_performance": (
+        "Daily marketing spend, ad impressions, clicks, attributed revenue, and realized ROAS. Core root cause table for Black Friday 14:30 "
+        "root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Reveals advertising budget under-delivery."
+    ),
+    "ad_bidding_log": (
+        "Automated smart bidding engine telemetry capturing bid status, target ROAS limits, budget pacing, and auction bid suppression. "
+        "Core root cause table for Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales."
+    ),
+    "ad_creatives": (
+        "Marketing creative assets, banner copy, video tags, and algorithmic learning status. Core root cause table for Black Friday 14:30 "
+        "root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Pinpoints creative fatigue and LEARNING_LIMITED."
+    ),
+    "payment_gateway_logs": (
+        "Payment service provider (PSP) transaction logs, authorization latencies, and HTTP response codes (PayPal, Stripe, Adyen). "
+        "Core root cause table for Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. "
+        "Identifies checkout failure rates, HTTP 504 gateway timeouts, and payment drop-offs."
+    ),
+    "influencer_campaigns": (
+        "Influencer partner contracts, promotional promo codes, target revenue pacing, and commission rates. Marketing diagnostic table for "
+        "Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales."
+    ),
+    "catalog_recommender_logs": (
+        "Product recommendation engine click logs, fallback recommendation flags, and relevance scoring. Core root cause table for Black Friday 14:30 "
+        "root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Identifies recommender algorithm bug."
+    ),
+    "shipping_lead_times": (
+        "Promised customer delivery lead times, carrier routing performance, and transit SLA compliance. Logistics diagnostic table for "
+        "Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales. Tracks delivery SLA breaches."
+    ),
+    "competitor_promotions": (
+        "Competitor promotional campaign calendars, discount percentages, and flash sale tracking. Merchandising diagnostic table for "
+        "Black Friday 14:30 root cause analysis of decreased revenue comparing to forecasted revenue during Black Week Sales."
+    ),
+}
+
+# Domain-specific enrichment for extended tables (Domains H through Q)
+EXTENDED_DOMAIN_CONTEXT_TEMPLATES = {
+    "domain_h_staging": "Raw third-party ELT staging table capturing untransformed partner API feeds and real-time webhook payloads. Diagnostic Role: Pipeline Ingestion Freshness & Sync Error Monitoring.",
+    "domain_i_returns": "Enterprise returns and RMA management dataset tracking customer return requests, warehouse inspection triage grades, and refund payment turnaround. Diagnostic Role: Post-Purchase Dissatisfaction, Damaged Product Rates & Refund Processing Latency.",
+    "domain_j_support": "Customer support ticketing and CRM operational telemetry tracking helpdesk queues, agent messaging, first contact resolution (FCR), and post-resolution CSAT surveys. Diagnostic Role: Customer Service Queue Backlog, Escalations & Channel Satisfaction.",
+    "domain_k_supply_chain": "Supply chain, procurement, and warehouse management (WMS) dataset capturing supplier purchase orders, inbound dock appointments, aisle rack cube utilization, and supplier on-time delivery (OTD). Diagnostic Role: Inbound Supplier SLA Tracking & Warehouse Storage Density.",
+    "domain_l_finance": "Corporate finance and accounting general ledger (GL) dataset capturing double-entry journal entries, chart of accounts mappings, accounts payable (AP) invoice aging, and bank statement reconciliations. Diagnostic Role: Financial Auditability, AP Aging & Trial Balance Reconciliation.",
+    "domain_m_loyalty": "Customer loyalty, rewards, and retention program dataset tracking tier memberships, point ledger burn-to-earn velocity, rewards redemptions, and gift card breakage. Diagnostic Role: Customer Retention, Loyalty Point Utilization & Churn Prevention.",
+    "domain_n_lifecycle": "Lifecycle marketing, CRM automation, and affiliate network telemetry tracking email campaign deliverability, template conversions, bounce rates, and partner commissions. Diagnostic Role: Lifecycle Deliverability, Campaign Unsubscribe Rates & Affiliate ROI.",
+    "domain_o_pim": "Product Information Management (PIM) and master catalog registry tracking SKU attribute completeness, multilingual translations, size charts, and digital media assets. Diagnostic Role: Master Catalog Quality, Translation Coverage & Merchandising Completeness.",
+    "domain_p_omnichannel": "Omni-channel retail physical store and point-of-sale (POS) transactional dataset tracking brick-and-mortar store registers, in-person sales, click-and-collect (BOPIS) pickup SLAs, and store inventory. Diagnostic Role: Physical Store Performance & BOPIS Fulfillment Latency.",
+    "domain_q_sandbox": "Non-production sandbox experimentation and quality assurance dataset capturing synthetic load test sessions, pricing simulations, and automated telemetry. Diagnostic Role: Experimental Feature Validation & QA Harness."
+}
+
+def get_access_token():
+    token = os.environ.get("GCP_ACCESS_TOKEN")
+    if not token:
+        gcloud_paths = ["/google/data/ro/teams/cloud-sdk/gcloud", "gcloud"]
+        for gcloud_cmd in gcloud_paths:
+            try:
+                res = subprocess.run(
+                    [gcloud_cmd, "auth", "print-access-token"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if res.returncode == 0 and res.stdout.strip():
+                    token = res.stdout.strip()
+                    break
+            except Exception:
+                continue
+    return token
+
+def get_project_number(token):
+    headers = {"Authorization": f"Bearer {token}"}
+    url = f"https://cloudresourcemanager.googleapis.com/v1/projects/{PROJECT_ID}"
+    try:
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            num = r.json().get("projectNumber")
+            if num:
+                return str(num)
+    except Exception:
+        pass
+
+    for cmd in ["/google/data/ro/teams/cloud-sdk/gcloud", "gcloud"]:
+        try:
+            res = subprocess.run([cmd, "projects", "describe", PROJECT_ID, "--format=value(projectNumber)"], capture_output=True, text=True, timeout=10)
+            if res.returncode == 0 and res.stdout.strip():
+                return res.stdout.strip()
+        except Exception:
+            continue
+    return ""
+
+def create_or_get_global_aspect_type(token):
+    aspect_type_id = "enterprise-data-context"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/aspectTypes/{aspect_type_id}"
+    
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        return r.json()["name"]
+
+    create_url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/aspectTypes?aspectTypeId={aspect_type_id}"
+    payload = {
+        "description": "Enterprise context, business domain categorization, data tier, and diagnostic role for LumièreShop warehouse tables.",
+        "metadataTemplate": {
+            "name": aspect_type_id,
+            "type": "record",
+            "recordFields": [
+                {"name": "business_domain", "type": "string", "index": 1, "annotations": {"description": "Business domain identifier across Domains A through Q"}},
+                {"name": "data_tier", "type": "string", "index": 2, "annotations": {"description": "Medallion architectural tier: gold_curated, silver_consolidated, bronze_raw_staging, sandbox_qa"}},
+                {"name": "operational_role", "type": "string", "index": 3, "annotations": {"description": "Standard business operations function in retail enterprise workflow"}},
+                {"name": "incident_relevance_summary", "type": "string", "index": 4, "annotations": {"description": "Detailed business context and diagnostic relevance regarding commercial sales targets, Black Week revenue pacing, stockouts, marketing spend, and fulfillment"}}
+            ]
+        }
+    }
+    r = requests.post(create_url, headers=headers, json=payload)
+    return f"projects/{PROJECT_ID}/locations/{LOCATION}/aspectTypes/{aspect_type_id}"
+
+def attach_single_aspect(args):
+    table_name, meta, token, project_number = args
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    aspect_type_ref = f"{project_number}.global.enterprise-data-context"
+    
+    labels = meta.get("labels", {})
+    domain = labels.get("domain", "general_enterprise")
+    tier = labels.get("data_tier", "gold_curated")
+    role = labels.get("diagnostic_role", "operational_table")
+    
+    # 1. Use explicit crucial context if in Core 25
+    if table_name in CRUCIAL_ASPECT_CONTEXT:
+        incident_summary = CRUCIAL_ASPECT_CONTEXT[table_name]
+    else:
+        # 2. Use enriched domain diagnostic template combined with table description
+        base_desc = meta.get("description", "")
+        template = EXTENDED_DOMAIN_CONTEXT_TEMPLATES.get(domain, "")
+        if template:
+            incident_summary = f"{base_desc} [DIAGNOSTIC CONTEXT]: {template}"
+        else:
+            incident_summary = base_desc
+    
+    entry_id = f"bigquery.googleapis.com/projects/{PROJECT_ID}/datasets/{DATASET_ID}/tables/{table_name}"
+    entry_path = f"projects/{project_number}/locations/{ENTRY_LOCATION}/entryGroups/@bigquery/entries/{entry_id}"
+    url = f"https://dataplex.googleapis.com/v1/{entry_path}"
+    
+    aspect_payload = {
+        "aspectType": f"projects/{project_number}/locations/global/aspectTypes/enterprise-data-context",
+        "data": {
+            "business_domain": domain,
+            "data_tier": tier,
+            "operational_role": role,
+            "incident_relevance_summary": incident_summary
+        }
+    }
+    
+    patch_payload = {"aspects": {aspect_type_ref: aspect_payload}}
+    patch_url = f"{url}?updateMask=aspects"
+    
+    try:
+        r = requests.patch(patch_url, headers=headers, json=patch_payload, timeout=15)
+        return table_name, r.status_code == 200
+    except Exception as e:
+        return table_name, False
+
+def attach_aspects_parallel(token, project_number):
+    print(f"\nAttaching global `enterprise-data-context` aspects in parallel across {len(TABLE_METADATA)} BigQuery tables...")
+    
+    tasks = [(t_name, meta, token, project_number) for t_name, meta in TABLE_METADATA.items()]
+    
+    success_count = 0
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        for table_name, success in executor.map(attach_single_aspect, tasks):
+            if success:
+                success_count += 1
+            if success_count % 25 == 0 or success_count == len(TABLE_METADATA):
+                print(f"  Progress: {success_count}/{len(TABLE_METADATA)} tables updated.")
+
+    print(f"✅ Completed global aspect attachment: {success_count}/{len(TABLE_METADATA)} tables processed.\n")
+
+def main():
+    token = get_access_token()
+    if not token:
+        print("ERROR: Could not retrieve GCP access token.", file=sys.stderr)
+        sys.exit(1)
+        
+    project_number = get_project_number(token)
+    print(f"GCP Project: {PROJECT_ID} (Number: {project_number}) | Aspect Location: {LOCATION} | Dataset: {DATASET_ID}")
+    
+    create_or_get_global_aspect_type(token)
+    attach_aspects_parallel(token, project_number)
+
+if __name__ == "__main__":
+    main()

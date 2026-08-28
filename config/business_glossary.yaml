@@ -1,0 +1,1719 @@
+glossary:
+  name: ecommerce-glossary
+  display_name: "Lumi\xE8reShop Executive Retail Glossary (140 Tables Complete)"
+  description: "Enterprise semantic glossary defining retail business metrics, e-commerce\
+    \ KPIs, operational failure modes, and BigQuery column bindings across all 17\
+    \ domains for Lumi\xE8reShop."
+  categories:
+  - id: marketing
+    display_name: Paid Acquisition & Marketing
+    description: Paid social, search, influencer marketing, ad algorithms, and conversion
+      metrics.
+  - id: supply_chain
+    display_name: Supply Chain & Warehousing
+    description: Inventory levels, stockouts, warehouse physical hubs, and batch replenishments.
+  - id: logistics
+    display_name: Fulfillment & Regional Logistics
+    description: Carrier performance, lead-time SLAs, regional delivery promises,
+      and cart abandonment.
+  - id: pricing_merchandising
+    display_name: Pricing & Merchandising
+    description: Competitor price scrapes, promotional discounts, and catalog recommendation
+      systems.
+  - id: technical_checkout
+    display_name: Digital Experience & Payments
+    description: Payment service providers (PSP), gateway error codes, and consent
+      management tracking.
+  - id: finance
+    display_name: Commercial Targets & Financial Performance
+    description: Gross revenue, financial pacing, commercial target variance, and
+      margin calculations.
+  - id: returns_rma
+    display_name: Returns, Refunds & RMA Management
+    description: Product return authorizations, inspection triage, refund processing,
+      and return rates.
+  - id: customer_service
+    display_name: Customer Support, CRM & CSAT
+    description: Helpdesk ticketing, first contact resolution, customer satisfaction
+      (CSAT), and NPS.
+  - id: loyalty_retention
+    display_name: Customer Loyalty, Rewards & Retention
+    description: Loyalty tier memberships, points ledger, rewards redemption, and
+      gift card balances.
+  - id: omnichannel_pos
+    display_name: Retail Physical Stores & Omni-Channel POS
+    description: Physical store registers, in-person transactions, click & collect
+      (BOPIS), and store inventory.
+  - id: product_pim
+    display_name: Product Information Management & Catalog Master
+    description: Product master taxonomy, localized translations, size charts, and
+      attribute completeness.
+  - id: lifecycle_marketing
+    display_name: Lifecycle Marketing, Email & Campaigns
+    description: Email deliverability, template conversions, bounce tracking, affiliate
+      publisher commissions, and coupon promotions.
+  - id: staging_ingestion
+    display_name: Raw Ingestion & Third-Party Partner Feeds
+    description: Staging pipelines and raw API feeds from Shopify, Meta, Google Ads,
+      Stripe, Adyen, Zendesk, SAP ERP, and GA4.
+  - id: data_governance
+    display_name: Data Governance, Quality & Interaction Auditing
+    description: Agent interaction logs, query execution telemetry, data profiling
+      scans, and table access auditing.
+  - id: temporal_context
+    display_name: Temporal Simulation & Calendar Context
+    description: "Semantic temporal anchor definitions, relative calendar mappings\
+      \ ('this week', 'today', 'yesterday', 'previous week', 'MTD'), and date bounds\
+      \ for the Lumi\xE8reShop Black Friday 2026 executive incident simulation."
+  terms:
+  - id: roas
+    display_name: ROAS (Return on Ad Spend)
+    category_id: marketing
+    definition: Marketing efficiency metric calculated as total attributed sales revenue
+      divided by advertising expenditure. Baseline Black Week target is 4.8x.
+    formula: SUM(orders.total_amount) / SUM(daily_ad_performance.spend)
+    synonyms:
+    - ad efficiency
+    - marketing ROI
+    - ad return
+    - campaign return
+    - ad spend efficiency
+    bindings:
+    - table: daily_ad_performance
+      column: spend
+    - table: daily_category_targets
+      column: target_roas
+  - id: cpc
+    display_name: CPC (Cost Per Click)
+    category_id: marketing
+    definition: The average financial amount billed by the advertising network for
+      each user click interaction.
+    formula: SUM(spend) / SUM(clicks)
+    synonyms:
+    - cost per click
+    - click cost
+    - ad traffic cost
+    bindings:
+    - table: daily_ad_performance
+      column: average_cpc
+  - id: cvr
+    display_name: CVR (E-Commerce Conversion Rate)
+    category_id: marketing
+    definition: The percentage of web sessions or product page visitors that successfully
+      finalize a completed transaction.
+    formula: (Total Completed Orders / Total Web Sessions) * 100
+    synonyms:
+    - conversion rate
+    - checkout conversion
+    - sales conversion
+    bindings:
+    - table: daily_category_targets
+      column: target_conversion_rate
+  - id: learning_limited
+    display_name: Learning Limited (Ad Platform Status)
+    category_id: marketing
+    definition: Algorithmic state in Meta Ads/Google Ads where an ad set fails to
+      exit the initial machine learning phase or becomes restricted due to creative
+      fatigue or low conversion volume.
+    formula: is_learning_limited = TRUE
+    synonyms:
+    - ad fatigue
+    - algorithm lockout
+    - creative fatigue
+    - stuck campaign
+    bindings:
+    - table: ad_creatives
+      column: is_learning_limited
+    - table: ad_bidding_log
+      column: action_taken
+  - id: target_roas_throttling
+    display_name: Target ROAS Budget Throttling
+    category_id: marketing
+    definition: Automated bidding reaction where the ad platform slashes daily budget
+      allocations when observed conversion rate drops below the required threshold
+      to maintain efficiency.
+    formula: action_taken = 'BUDGET_THROTTLED'
+    synonyms:
+    - budget throttling
+    - spend cut
+    - algorithm throttling
+    - ad spend reduction
+    bindings:
+    - table: ad_bidding_log
+      column: action_taken
+    - table: daily_ad_performance
+      column: spend
+  - id: influencer_revenue
+    display_name: Influencer Attributed Revenue
+    category_id: marketing
+    definition: Gross merchandise value generated directly through creator promotion
+      codes (e.g. TikTok, Instagram).
+    formula: actual_revenue from influencer_campaigns
+    synonyms:
+    - creator revenue
+    - influencer sales
+    - promo code sales
+    bindings:
+    - table: influencer_campaigns
+      column: attributed_revenue
+    - table: influencer_campaigns
+      column: influencer_handle
+  - id: oos
+    display_name: Out of Stock (OOS / Stockout)
+    category_id: supply_chain
+    definition: State when physical inventory quantity for an active product at a
+      distribution center drops to zero or below.
+    formula: stock_quantity <= 0 OR is_out_of_stock = TRUE
+    synonyms:
+    - stockout
+    - unavailable
+    - sold out
+    - inventory depletion
+    - zero stock
+    bindings:
+    - table: inventory_snapshots
+      column: is_out_of_stock
+    - table: inventory_items
+      column: quantity_on_hand
+  - id: stockout_lost_revenue
+    display_name: Stockout Estimated Lost Revenue
+    category_id: supply_chain
+    definition: Calculated monetary loss incurred when high-intent shoppers attempt
+      to purchase an out-of-stock SKU.
+    formula: SUM(estimated_lost_revenue) from oos_interactions
+    synonyms:
+    - OOS lost revenue
+    - stockout loss
+    - unrealized sales
+    - missed demand
+    bindings:
+    - table: oos_interactions
+      column: estimated_lost_revenue
+  - id: safety_stock
+    display_name: Safety Stock Level
+    category_id: supply_chain
+    definition: Minimum threshold buffer quantity maintained in warehouse to prevent
+      unexpected stockouts during demand surges.
+    formula: safety_stock_level from inventory_items
+    synonyms:
+    - buffer stock
+    - safety inventory
+    - reorder point
+    bindings:
+    - table: inventory_items
+      column: safety_stock_level
+  - id: dach_region
+    display_name: DACH Region
+    category_id: logistics
+    definition: Central European commercial zone comprising Germany (DE), Austria
+      (AT), and Switzerland (CH), primarily fulfilled by the Frankfurt Hub (DC 2).
+    formula: destination_region = 'DACH' OR country IN ('Germany', 'Austria', 'Switzerland')
+    synonyms:
+    - DACH
+    - German market
+    - Central Europe
+    - German-speaking region
+    bindings:
+    - table: shipping_lead_times
+      column: destination_region
+    - table: users
+      column: country
+  - id: lead_time_sla
+    display_name: Delivery Lead Time SLA
+    category_id: logistics
+    definition: The promised carrier transit duration displayed to customers at checkout.
+      Standard target is 24 hours.
+    formula: actual_promised_lead_time_hours vs standard_lead_time_hours
+    synonyms:
+    - shipping lead time
+    - delivery promise
+    - transit time
+    - shipping speed
+    bindings:
+    - table: shipping_lead_times
+      column: actual_promised_lead_time_hours
+  - id: carrier_bottleneck
+    display_name: Carrier Capacity Utilization & Bottleneck
+    category_id: logistics
+    definition: Operational workload percentage of logistics distribution centers
+      and freight carriers. Utilization over 90% triggers shipping SLA delays.
+    formula: capacity_utilization_pct >= 90.0
+    synonyms:
+    - logistics bottleneck
+    - warehouse congestion
+    - carrier overload
+    bindings:
+    - table: shipping_lead_times
+      column: capacity_utilization_pct
+  - id: price_index
+    display_name: Competitor Price Index Parity
+    category_id: pricing_merchandising
+    definition: "Ratio of competitor retail prices compared to Lumi\xE8reShop prices\
+      \ for identical SKUs. 1.00x denotes exact price parity."
+    formula: competitor_price / retail_price
+    synonyms:
+    - price parity
+    - price index
+    - competitive pricing
+    - price benchmark
+    bindings:
+    - table: competitor_price_feed
+      column: competitor_price
+    - table: competitor_promotions
+      column: discount_pct
+  - id: recommender_mismatch
+    display_name: Catalog Recommender Category Mismatch
+    category_id: pricing_merchandising
+    definition: Algorithmic failure mode where the product recommendation engine displays
+      unrelated categories (e.g. Electronics on Beauty pages) upon fallback.
+    formula: is_category_mismatch = TRUE
+    synonyms:
+    - recommender bug
+    - cross-sell failure
+    - recommendation mismatch
+    - broken substitute
+    bindings:
+    - table: catalog_recommender_logs
+      column: is_category_mismatch
+    - table: catalog_recommender_logs
+      column: estimated_lost_substitution_revenue
+  - id: psp_gateway_error
+    display_name: Payment Service Provider (PSP) Error
+    category_id: technical_checkout
+    definition: Technical transaction failures, gateway timeouts, or authorization
+      declines returned by Stripe, PayPal, or Adyen.
+    formula: status = 'FAILED' OR error_code IS NOT NULL
+    synonyms:
+    - payment failure
+    - gateway timeout
+    - checkout error
+    - credit card decline
+    bindings:
+    - table: payment_gateway_logs
+      column: status
+    - table: payment_gateway_logs
+      column: error_code
+  - id: cookie_consent_mirage
+    display_name: Cookie Consent Tracking Attribution Mirage
+    category_id: technical_checkout
+    definition: Discrepancy where client-side analytics pixels (e.g. Meta Pixel on
+      iOS Safari) drop tracking events, while server-side BigQuery order records remain
+      healthy.
+    formula: orders count vs web_events tracking
+    synonyms:
+    - cookie tracking drop
+    - iOS tracking glitch
+    - attribution mirage
+    - CMP consent drop
+    bindings:
+    - table: web_sessions
+      column: device_os
+    - table: orders
+      column: total_amount
+  - id: aov
+    display_name: AOV (Average Order Value)
+    category_id: finance
+    definition: Mean gross monetary expenditure per completed customer order.
+    formula: SUM(orders.total_amount) / COUNT(orders.order_id)
+    synonyms:
+    - average order value
+    - basket size
+    - average checkout amount
+    bindings:
+    - table: orders
+      column: total_amount
+    - table: daily_category_targets
+      column: target_aov
+  - id: target_variance
+    display_name: Commercial Target Revenue Variance
+    category_id: finance
+    definition: The net monetary gap between realized actual gross sales and planned
+      financial targets.
+    formula: Actual Revenue - Target Revenue
+    synonyms:
+    - revenue gap
+    - target deficit
+    - sales variance
+    - revenue shortfall
+    bindings:
+    - table: weekly_commercial_targets
+      column: target_revenue
+    - table: daily_category_targets
+      column: target_revenue
+  - id: black_week_promotional_period
+    display_name: Black Week Peak Commercial Period
+    category_id: finance
+    definition: "The annual Q4 retail peak promotional sales period from Monday November\
+      \ 23, 2026 00:00:00 to Sunday November 29, 2026 23:59:59 UTC, encompassing Black\
+      \ Friday and Cyber Monday. Evaluated against executive weekly_commercial_targets\
+      \ and daily_category_targets with an executive sales benchmark of \u20AC6,650,000\
+      \ across categories."
+    formula: orders.created_at >= '2026-11-23 00:00:00' AND orders.created_at < '2026-11-30
+      00:00:00'
+    synonyms:
+    - Black Week
+    - Black Friday
+    - Cyber Week
+    - Peak Promo Event
+    - Black Week 2026
+    - Q4 Peak Promotional Period
+    - Black Friday Cyber Monday
+    - BFCM
+    bindings:
+    - table: weekly_commercial_targets
+      column: week_start_date
+    - table: daily_category_targets
+      column: date
+    - table: orders
+      column: created_at
+  - id: return_rate
+    display_name: Product Return Rate (RMA %)
+    category_id: returns_rma
+    definition: The percentage of fulfilled retail order items returned by customers
+      across categories.
+    formula: (COUNT(product_returns.return_id) / COUNT(order_items.order_item_id))
+      * 100
+    synonyms:
+    - return rate
+    - RMA percentage
+    - product return percentage
+    - merchandise return rate
+    bindings:
+    - table: product_returns
+      column: return_id
+    - table: order_items
+      column: order_item_id
+  - id: refund_ratio
+    display_name: Customer Refund Value Ratio
+    category_id: returns_rma
+    definition: Total monetary volume refunded to customer accounts relative to total
+      gross checkout merchandise value.
+    formula: SUM(customer_refunds.refund_amount) / SUM(orders.total_amount)
+    synonyms:
+    - refund rate
+    - customer refund ratio
+    - refund value percentage
+    - disbursed refunds
+    bindings:
+    - table: customer_refunds
+      column: refund_amount
+    - table: orders
+      column: total_amount
+  - id: rma_processing_time
+    display_name: RMA Return Inspection Processing SLA
+    category_id: returns_rma
+    definition: Elapsed turnaround time in hours between return authorization receipt
+      and physical warehouse triage inspection.
+    formula: TIMESTAMP_DIFF(return_inspections.inspected_at, product_returns.created_at,
+      HOUR)
+    synonyms:
+    - return inspection cycle
+    - RMA turnaround
+    - reverse logistics SLA
+    - return cycle time
+    bindings:
+    - table: return_inspections
+      column: inspected_at
+    - table: product_returns
+      column: created_at
+  - id: first_contact_resolution
+    display_name: First Contact Resolution (FCR %)
+    category_id: customer_service
+    definition: The percentage of customer support tickets successfully resolved during
+      the initial contact without requiring escalations or repeat interactions.
+    formula: (COUNT(tickets resolved at first response) / COUNT(support_tickets.ticket_id))
+      * 100
+    synonyms:
+    - FCR
+    - first touch resolution
+    - one touch resolution
+    - single contact solve
+    bindings:
+    - table: support_tickets
+      column: ticket_id
+    - table: support_tickets
+      column: status
+  - id: csat_score_pct
+    display_name: CSAT (Customer Satisfaction Score %)
+    category_id: customer_service
+    definition: The percentage of satisfied survey responses (rating 4 or 5 out of
+      5) submitted following customer support interactions.
+    formula: (COUNT(csat_surveys where score >= 4) / COUNT(csat_surveys.survey_id))
+      * 100
+    synonyms:
+    - CSAT
+    - customer satisfaction
+    - support satisfaction
+    - service satisfaction rate
+    bindings:
+    - table: csat_surveys
+      column: score
+    - table: csat_surveys
+      column: ticket_id
+  - id: net_promoter_score
+    display_name: NPS (Net Promoter Score)
+    category_id: customer_service
+    definition: Customer advocacy index calculated as the percentage of brand Promoters
+      (ratings 9-10) minus Detractors (ratings 0-6).
+    formula: '% Promoters (Score 9-10) - % Detractors (Score 0-6)'
+    synonyms:
+    - NPS
+    - net promoter score
+    - customer advocacy
+    - brand loyalty index
+    bindings:
+    - table: nps_feedback_responses
+      column: score
+  - id: ticket_sla_compliance
+    display_name: Helpdesk Ticket SLA Compliance Rate
+    category_id: customer_service
+    definition: The percentage of support tickets resolved strictly within the defined
+      category SLA target duration in minutes.
+    formula: (COUNT(tickets where resolution_time_sec <= sla_target_minutes * 60)
+      / COUNT(tickets)) * 100
+    synonyms:
+    - support SLA compliance
+    - helpdesk SLA rate
+    - case resolution SLA
+    - ticket SLA adherence
+    bindings:
+    - table: support_tickets
+      column: resolution_time_sec
+    - table: ticket_categories
+      column: sla_target_minutes
+  - id: supplier_on_time_in_full_otif
+    display_name: Supplier OTIF (On-Time In-Full Delivery %)
+    category_id: supply_chain
+    definition: Inbound supply chain delivery performance metric measuring vendor
+      purchase orders received strictly on schedule and complete.
+    formula: supplier_quality_scorecards.otif_delivery_pct
+    synonyms:
+    - OTIF
+    - on time in full
+    - vendor delivery reliability
+    - procurement fulfillment rate
+    bindings:
+    - table: supplier_quality_scorecards
+      column: otif_delivery_pct
+    - table: purchase_orders
+      column: po_id
+  - id: supplier_defect_rate
+    display_name: Supplier Inbound Defect Rate (%)
+    category_id: supply_chain
+    definition: The percentage of received procurement units rejected during inbound
+      warehouse quality inspection due to manufacturer defects.
+    formula: supplier_quality_scorecards.defect_rate_pct
+    synonyms:
+    - vendor defect rate
+    - inbound scrap rate
+    - supplier defect percentage
+    - material rejection rate
+    bindings:
+    - table: supplier_quality_scorecards
+      column: defect_rate_pct
+    - table: purchase_order_line_items
+      column: unit_cost_eur
+  - id: dock_turnaround_time
+    display_name: Inbound Freight Dock Turnaround Time
+    category_id: supply_chain
+    definition: The duration in minutes taken to unload, inspect, and stage freight
+      carrier shipments at warehouse inbound dock doors.
+    formula: TIMESTAMP_DIFF(unloaded_time, scheduled_time, MINUTE)
+    synonyms:
+    - dock dwell time
+    - inbound unloading duration
+    - dock door turnaround
+    - dock cycle time
+    bindings:
+    - table: inbound_dock_appointments
+      column: unloaded_time
+    - table: inbound_dock_appointments
+      column: scheduled_time
+  - id: gross_margin_pct
+    display_name: Gross Margin Percentage (GM %)
+    category_id: finance
+    definition: The proportion of total e-commerce revenue retained after subtracting
+      product acquisition and manufacturing costs of goods sold (COGS).
+    formula: ((SUM(sale_price) - SUM(cost)) / SUM(sale_price)) * 100
+    synonyms:
+    - gross profit margin
+    - product margin
+    - COGS margin
+    - gross margin
+    bindings:
+    - table: products
+      column: cost
+    - table: products
+      column: retail_price
+    - table: order_items
+      column: sale_price
+  - id: days_sales_outstanding_dso
+    display_name: DSO (Days Sales Outstanding)
+    category_id: finance
+    definition: Corporate financial liquidity metric measuring the average number
+      of calendar days required to collect invoice receivables from corporate clients.
+    formula: (Accounts Receivable Balance / Total Credit Sales) * Number of Days
+    synonyms:
+    - DSO
+    - receivable collection days
+    - AR collection period
+    - days sales outstanding
+    bindings:
+    - table: accounts_receivable_invoices
+      column: billed_amount_eur
+    - table: accounts_receivable_invoices
+      column: due_date
+  - id: vat_effective_rate
+    display_name: Effective VAT Tax Collection Rate
+    category_id: finance
+    definition: The realized value-added tax percentage collected across European
+      destination jurisdictions.
+    formula: (vat_collected_eur / taxable_sales_eur) * 100
+    synonyms:
+    - VAT rate
+    - sales tax rate
+    - effective tax rate
+    - destination VAT
+    bindings:
+    - table: vat_tax_jurisdictions
+      column: standard_vat_rate_pct
+    - table: vat_period_filing_reports
+      column: vat_collected_eur
+  - id: points_breakage_rate
+    display_name: Loyalty Points Breakage Rate (%)
+    category_id: loyalty_retention
+    definition: The percentage of customer loyalty points issued that will expire
+      unredeemed based on historical expiration patterns.
+    formula: (Expired Points / Total Issued Points) * 100
+    synonyms:
+    - points breakage
+    - unredeemed loyalty points
+    - points expiration rate
+    - breakage percentage
+    bindings:
+    - table: loyalty_points_ledger
+      column: points_delta
+    - table: loyalty_members
+      column: total_points_balance
+  - id: loyalty_redemption_rate
+    display_name: Loyalty Reward Points Redemption Rate
+    category_id: loyalty_retention
+    definition: The proportion of accumulated member loyalty points converted into
+      commercial reward redemptions and discounts.
+    formula: (SUM(points_spent) / SUM(points_earned)) * 100
+    synonyms:
+    - reward redemption rate
+    - loyalty burn rate
+    - point redemption percentage
+    - points utilization
+    bindings:
+    - table: loyalty_reward_redemptions
+      column: points_spent
+    - table: loyalty_points_ledger
+      column: points_delta
+  - id: customer_lifetime_value_clv
+    display_name: CLV (Customer Lifetime Value)
+    category_id: loyalty_retention
+    definition: The predicted total gross merchandise value generated by an individual
+      customer account over their lifetime.
+    formula: Average Order Value * Purchase Frequency * Customer Lifespan
+    synonyms:
+    - CLV
+    - LTV
+    - customer lifetime value
+    - lifetime customer GMV
+    bindings:
+    - table: orders
+      column: total_amount
+    - table: loyalty_members
+      column: user_id
+  - id: same_store_sales_growth
+    display_name: Same-Store Sales Growth (SSS %)
+    category_id: omnichannel_pos
+    definition: Year-over-year commercial sales revenue growth percentage generated
+      across physical retail store locations open for at least one full calendar year.
+    formula: ((Current Year Store Revenue - Prior Year Store Revenue) / Prior Year
+      Store Revenue) * 100
+    synonyms:
+    - comp store sales
+    - same store sales
+    - like-for-like sales
+    - LFL store growth
+    - SSS growth
+    bindings:
+    - table: pos_store_transactions
+      column: total_amount_eur
+    - table: physical_store_locations
+      column: store_id
+  - id: bopis_fulfillment_rate
+    display_name: BOPIS (Buy-Online-Pick-Up-in-Store) Completion Rate
+    category_id: omnichannel_pos
+    definition: The percentage of Click & Collect orders successfully collected by
+      customers at physical retail stores within promised pickup SLAs.
+    formula: (COUNT(collected BOPIS orders) / COUNT(total BOPIS orders)) * 100
+    synonyms:
+    - click and collect completion
+    - BOPIS fulfillment
+    - store pickup rate
+    - omnichannel pickup SLA
+    bindings:
+    - table: click_and_collect_orders
+      column: status
+    - table: click_and_collect_orders
+      column: collected_at
+  - id: catalog_completeness_pct
+    display_name: Catalog Attribute Completeness (%)
+    category_id: product_pim
+    definition: Product Information Management (PIM) data quality score measuring
+      the percentage of mandatory product attributes populated across catalog SKUs.
+    formula: (Populated Mandatory Attributes / Total Required Attributes) * 100
+    synonyms:
+    - PIM completeness
+    - catalog data quality
+    - attribute coverage percentage
+    - catalog health score
+    bindings:
+    - table: product_attribute_values
+      column: value_id
+    - table: product_attribute_definitions
+      column: attribute_id
+  - id: email_deliverability_rate
+    display_name: Lifecycle Email Deliverability Rate (%)
+    category_id: marketing
+    definition: The percentage of broadcast lifecycle and promotional marketing emails
+      successfully delivered to recipient inboxes without bounce rejections.
+    formula: ((Total Sent Emails - Hard Bounces) / Total Sent Emails) * 100
+    synonyms:
+    - email deliverability
+    - inbox delivery rate
+    - email bounce rate
+    - marketing email deliverability
+    bindings:
+    - table: email_send_queue_logs
+      column: status
+    - table: email_bounces_and_complaints
+      column: bounce_type
+  - id: rma_authorization_rate
+    display_name: RMA Authorization Rate
+    category_id: returns_rma
+    definition: Percentage of completed orders that result in a return merchandise
+      authorization (RMA) request.
+    formula: COUNT(DISTINCT product_returns.return_id) / COUNT(DISTINCT orders.order_id)
+    synonyms:
+    - return rate
+    - return merchandise authorization
+    - RMA percentage
+    - order return ratio
+    bindings:
+    - table: product_returns
+      column: return_id
+    - table: return_reasons_lookup
+      column: reason_code
+  - id: defective_return_rate
+    display_name: Defective Inspection Rate
+    category_id: returns_rma
+    definition: Ratio of returned items classified as defective or damaged upon warehouse
+      triage inspection.
+    formula: COUNTIF(return_inspections.condition_grade = 'DEFECTIVE') / COUNT(return_inspections.inspection_id)
+    synonyms:
+    - damaged return rate
+    - inspection defect ratio
+    - faulty goods percentage
+    bindings:
+    - table: return_inspections
+      column: condition_grade
+    - table: return_shipping_labels
+      column: tracking_number
+  - id: refund_processing_latency
+    display_name: Refund Payout Processing Latency
+    category_id: returns_rma
+    definition: Average duration in hours from customer return receipt to financial
+      refund disbursement.
+    formula: AVG(TIMESTAMP_DIFF(customer_refunds.created_at, product_returns.created_at,
+      HOUR))
+    synonyms:
+    - refund turnaround time
+    - refund payout speed
+    - customer refund delay
+    bindings:
+    - table: customer_refunds
+      column: amount_eur
+  - id: first_contact_resolution_rate
+    display_name: First Contact Resolution (FCR) Rate
+    category_id: customer_service
+    definition: Percentage of incoming support tickets resolved in a single interaction
+      without follow-up escalation.
+    formula: COUNTIF(support_tickets.reopened_count = 0 AND support_tickets.status
+      = 'RESOLVED') / COUNT(support_tickets.ticket_id)
+    synonyms:
+    - FCR
+    - one-touch resolution
+    - single contact fix rate
+    bindings:
+    - table: support_tickets
+      column: status
+    - table: ticket_categories
+      column: category_name
+  - id: ticket_backlog_volume
+    display_name: Customer Support Ticket Backlog
+    category_id: customer_service
+    definition: Total count of unresolved or pending customer service tickets across
+      support queues.
+    formula: COUNTIF(support_tickets.status IN ('OPEN', 'PENDING', 'IN_PROGRESS'))
+    synonyms:
+    - support backlog
+    - open ticket queue
+    - unresolved ticket count
+    - helpdesk queue depth
+    bindings:
+    - table: support_tickets
+      column: priority
+    - table: ticket_messages
+      column: sender_type
+  - id: csat_net_score
+    display_name: CSAT (Customer Satisfaction Score)
+    category_id: customer_service
+    definition: Average customer satisfaction rating recorded on post-ticket resolution
+      surveys on a 1-5 scale.
+    formula: AVG(csat_surveys.csat_score)
+    synonyms:
+    - customer satisfaction
+    - CSAT rating
+    - support quality score
+    - customer happiness index
+    bindings:
+    - table: csat_surveys
+      column: csat_score
+    - table: support_agents
+      column: tier_level
+  - id: customer_escalation_rate
+    display_name: Customer Escalation Incident Rate
+    category_id: customer_service
+    definition: Percentage of customer support inquiries escalated to senior management
+      or tier-3 support teams.
+    formula: COUNT(customer_escalations.escalation_id) / COUNT(support_tickets.ticket_id)
+    synonyms:
+    - tier 3 escalation
+    - manager escalation rate
+    - critical complaint volume
+    bindings:
+    - table: customer_escalations
+      column: escalation_reason
+    - table: agent_worklog_shifts
+      column: shift_type
+    - table: call_center_recordings_metadata
+      column: call_duration_seconds
+  - id: purchase_order_fill_rate
+    display_name: Purchase Order (PO) Fill Rate
+    category_id: supply_chain
+    definition: Percentage of ordered units successfully received against supplier
+      purchase order line commitments.
+    formula: SUM(purchase_order_line_items.received_quantity) / SUM(purchase_order_line_items.ordered_quantity)
+    synonyms:
+    - PO fulfillment rate
+    - supplier fill rate
+    - procurement receipt ratio
+    bindings:
+    - table: purchase_orders
+      column: po_status
+    - table: purchase_order_line_items
+      column: ordered_quantity
+  - id: supplier_on_time_delivery_rate
+    display_name: Supplier On-Time Inbound Delivery (OTD) Rate
+    category_id: supply_chain
+    definition: Percentage of supplier purchase orders delivered to fulfillment hubs
+      on or before the agreed contractual SLA date.
+    formula: COUNTIF(purchase_orders.actual_delivery_date <= purchase_orders.expected_delivery_date)
+      / COUNT(purchase_orders.po_id)
+    synonyms:
+    - supplier OTD
+    - inbound delivery timeliness
+    - supplier SLA compliance
+    bindings:
+    - table: suppliers_master
+      column: country_code
+    - table: supplier_lead_time_history
+      column: actual_lead_time_days
+    - table: supplier_quality_scorecards
+      column: overall_score
+  - id: warehouse_aisle_cube_utilization
+    display_name: Warehouse Aisle & Rack Cube Utilization
+    category_id: supply_chain
+    definition: Percentage of total volumetric storage capacity currently occupied
+      across warehouse aisles and storage racks.
+    formula: SUM(warehouse_aisles_and_racks.occupied_cube_meters) / SUM(warehouse_aisles_and_racks.total_cube_meters)
+    synonyms:
+    - storage rack density
+    - cube utilization
+    - warehouse space utilization
+    - aisle occupancy
+    bindings:
+    - table: warehouse_aisles_and_racks
+      column: utilization_pct
+    - table: warehouse_zones
+      column: zone_type
+    - table: warehouse_labor_shifts
+      column: hours_worked
+  - id: inbound_dock_turnaround_time
+    display_name: Inbound Dock Appointment Turnaround Time
+    category_id: supply_chain
+    definition: Average elapsed time from carrier truck arrival at the inbound dock
+      to container unload and putaway completion.
+    formula: AVG(TIMESTAMP_DIFF(inbound_dock_appointments.unload_end_time, inbound_dock_appointments.arrival_time,
+      MINUTE))
+    synonyms:
+    - dock dwell time
+    - cross dock turnaround
+    - freight unloading latency
+    bindings:
+    - table: inbound_dock_appointments
+      column: status
+    - table: cross_dock_transfer_orders
+      column: transfer_status
+    - table: forklift_telemetry_logs
+      column: battery_level_pct
+    - table: freight_carrier_contracts
+      column: base_rate_eur
+    - table: warehouse_refurbishments
+      column: refurbishment_cost_eur
+  - id: accounts_payable_aging_days
+    display_name: Accounts Payable (AP) Days Outstanding (DPO)
+    category_id: finance
+    definition: Average number of days taken to settle vendor and supplier invoices
+      from invoice receipt date.
+    formula: (SUM(accounts_payable_invoices.invoice_amount_eur) / SUM(purchase_order_line_items.unit_cost_eur
+      * purchase_order_line_items.received_quantity)) * 365
+    synonyms:
+    - DPO
+    - days payable outstanding
+    - AP invoice aging
+    - vendor payment latency
+    bindings:
+    - table: accounts_payable_invoices
+      column: invoice_amount_eur
+    - table: accounts_payable_disbursements
+      column: disbursement_amount_eur
+  - id: gl_journal_entry_balance
+    display_name: General Ledger (GL) Debit-Credit Balance
+    category_id: finance
+    definition: Double-entry bookkeeping validation ensuring total debits equal total
+      credits across all posted journal lines.
+    formula: SUM(gl_journal_lines.debit_amount_eur) - SUM(gl_journal_lines.credit_amount_eur)
+    synonyms:
+    - trial balance check
+    - debit credit equality
+    - GL reconciliation
+    - journal line balance
+    bindings:
+    - table: general_ledger_journal_entries
+      column: journal_id
+    - table: gl_journal_lines
+      column: debit_amount_eur
+    - table: chart_of_accounts
+      column: account_number
+  - id: bank_reconciliation_variance
+    display_name: Bank Statement Reconciliation Discrepancy
+    category_id: finance
+    definition: Unreconciled financial variance between bank statement settlement
+      cash flows and internal general ledger cash accounts.
+    formula: SUM(bank_account_reconciliation.statement_balance_eur) - SUM(bank_account_reconciliation.ledger_balance_eur)
+    synonyms:
+    - bank variance
+    - cash book reconciliation
+    - unsettled bank items
+    bindings:
+    - table: bank_account_reconciliation
+      column: discrepancy_amount_eur
+    - table: accounts_receivable_invoices
+      column: invoice_amount_eur
+    - table: currency_exchange_rates_daily
+      column: exchange_rate_to_eur
+    - table: customs_and_duties_declarations
+      column: duty_amount_eur
+  - id: points_burn_earn_ratio
+    display_name: Loyalty Points Burn-to-Earn Ratio
+    category_id: loyalty_retention
+    definition: Proportion of issued loyalty reward points redeemed by customers relative
+      to newly earned points.
+    formula: SUM(CASE WHEN points_delta < 0 THEN ABS(points_delta) ELSE 0 END) / SUM(CASE
+      WHEN points_delta > 0 THEN points_delta ELSE 0 END)
+    synonyms:
+    - burn to earn
+    - points redemption velocity
+    - loyalty point utilization rate
+    bindings:
+    - table: loyalty_points_ledger
+      column: points_delta
+    - table: loyalty_members
+      column: current_points_balance
+    - table: loyalty_reward_redemptions
+      column: reward_id
+    - table: loyalty_tier_definitions
+      column: tier_name
+  - id: gift_card_breakage_rate
+    display_name: Gift Card Unredeemed Breakage Value
+    category_id: loyalty_retention
+    definition: Total monetary value of issued gift cards and store credit balances
+      that remain unredeemed past expiration thresholds.
+    formula: SUM(gift_card_master.initial_balance_eur - gift_card_master.current_balance_eur)
+    synonyms:
+    - unredeemed gift cards
+    - breakage revenue
+    - store credit float
+    bindings:
+    - table: gift_card_master
+      column: current_balance_eur
+    - table: gift_card_transactions
+      column: transaction_amount_eur
+    - table: store_credit_issuances
+      column: credit_amount_eur
+  - id: email_deliverability_rate
+    display_name: Email Campaign Deliverability Rate
+    category_id: lifecycle_marketing
+    definition: Percentage of dispatched promotional and lifecycle emails successfully
+      accepted by recipient mail servers without hard or soft bounces.
+    formula: COUNTIF(email_send_queue_logs.status = 'DELIVERED') / COUNT(email_send_queue_logs.queue_id)
+    synonyms:
+    - email delivery rate
+    - inbox placement rate
+    - deliverability percentage
+    bindings:
+    - table: email_send_queue_logs
+      column: status
+    - table: email_campaign_templates
+      column: subject_line
+    - table: email_bounces_and_complaints
+      column: bounce_type
+  - id: affiliate_commission_yield
+    display_name: Affiliate Publisher Commission Yield
+    category_id: lifecycle_marketing
+    definition: Total partner commission payout generated per unit of net revenue
+      driven by external affiliate publisher networks.
+    formula: SUM(affiliate_commission_payouts.commission_amount_eur) / SUM(affiliate_commission_payouts.attributed_revenue_eur)
+    synonyms:
+    - affiliate payout rate
+    - partner publisher commission
+    - affiliate ROI
+    bindings:
+    - table: affiliate_commission_payouts
+      column: commission_amount_eur
+    - table: affiliate_publishers_directory
+      column: publisher_name
+    - table: discount_coupons_master
+      column: discount_percentage
+    - table: coupon_redemption_audit
+      column: discount_applied_eur
+  - id: catalog_attribute_completeness_rate
+    display_name: PIM Product Attribute Completeness Rate
+    category_id: product_pim
+    definition: Percentage of active catalog SKUs possessing 100% of required merchandising
+      attributes, translations, and media assets.
+    formula: COUNT(DISTINCT product_attribute_values.product_id) / COUNT(DISTINCT
+      products.product_id)
+    synonyms:
+    - PIM completeness
+    - catalog data quality
+    - attribute fullness
+    - SKU enrichment score
+    bindings:
+    - table: product_attribute_definitions
+      column: attribute_name
+    - table: product_attribute_values
+      column: attribute_value_text
+    - table: product_multilingual_translations
+      column: locale_code
+    - table: product_size_charts
+      column: fit_type
+    - table: product_media_gallery
+      column: media_type
+    - table: product_brand_guidelines
+      column: brand_name
+  - id: bopis_fulfillment_sla_rate
+    display_name: Click & Collect (BOPIS) Ready-for-Pickup SLA Rate
+    category_id: omnichannel_pos
+    definition: Percentage of online click-and-collect orders picked, packed, and
+      marked ready in physical store branches within the 2-hour customer promise SLA.
+    formula: COUNTIF(click_and_collect_orders.fulfillment_duration_minutes <= 120)
+      / COUNT(click_and_collect_orders.order_id)
+    synonyms:
+    - BOPIS SLA
+    - click and collect readiness
+    - curbside pickup fulfillment time
+    - store pickup SLA
+    bindings:
+    - table: click_and_collect_orders
+      column: pickup_status
+    - table: physical_store_locations
+      column: city
+    - table: pos_store_transactions
+      column: total_amount_eur
+    - table: pos_transaction_items
+      column: quantity
+    - table: pos_terminal_registers
+      column: register_number
+    - table: store_inventory_levels
+      column: quantity_in_store
+    - table: store_cash_drawer_counts
+      column: variance_eur
+    - table: store_employee_rosters
+      column: shift_role
+  - id: staging_pipeline_sync_latency
+    display_name: Third-Party Staging Pipeline Ingestion Latency
+    category_id: staging_ingestion
+    definition: Average time delay in minutes between upstream source API transaction
+      timestamps and raw BigQuery staging table ingestion.
+    formula: AVG(TIMESTAMP_DIFF(stg_shopify_orders_raw._ingestion_timestamp, stg_shopify_orders_raw.created_at,
+      MINUTE))
+    synonyms:
+    - staging latency
+    - API ingestion delay
+    - ELT sync freshness
+    - raw feed latency
+    bindings:
+    - table: stg_shopify_orders_raw
+      column: raw_payload
+    - table: stg_shopify_customers_raw
+      column: raw_payload
+    - table: stg_shopify_products_raw
+      column: raw_payload
+    - table: stg_meta_ad_insights_raw
+      column: raw_payload
+    - table: stg_google_ads_campaigns_raw
+      column: raw_payload
+    - table: stg_google_ads_search_terms_raw
+      column: raw_payload
+    - table: stg_klaviyo_email_events_raw
+      column: raw_payload
+    - table: stg_klaviyo_campaigns_raw
+      column: raw_payload
+    - table: stg_stripe_payment_intents_raw
+      column: raw_payload
+    - table: stg_stripe_disputes_raw
+      column: raw_payload
+    - table: stg_adyen_settlements_raw
+      column: raw_payload
+    - table: stg_zendesk_tickets_raw
+      column: raw_payload
+    - table: stg_zendesk_satisfaction_raw
+      column: raw_payload
+    - table: stg_sap_erp_inventory_feed_raw
+      column: raw_payload
+    - table: stg_sap_erp_purchase_orders_raw
+      column: raw_payload
+    - table: stg_criteo_retargeting_raw
+      column: raw_payload
+    - table: stg_ga4_clickstream_raw
+      column: raw_payload
+    - table: stg_ga4_traffic_sources_raw
+      column: raw_payload
+    - table: stg_wms_shipments_raw
+      column: raw_payload
+    - table: stg_trustpilot_reviews_raw
+      column: raw_payload
+  - id: agent_query_slot_utilization
+    display_name: Conversational Agent Query Slot-Millisecond Efficiency
+    category_id: data_governance
+    definition: BigQuery slot-milliseconds and compute resources consumed by automated
+      conversational analytics agents per SQL execution.
+    formula: AVG(agent_interaction_logs.slot_milliseconds)
+    synonyms:
+    - slot consumption
+    - agent query compute
+    - BigQuery slot efficiency
+    bindings:
+    - table: agent_interaction_logs
+      column: slot_milliseconds
+    - table: dev_customer_churn_feature_store
+      column: feature_timestamp
+    - table: dev_product_embedding_vectors
+      column: embedding_version
+  - id: commercial_sales_velocity
+    display_name: Commercial Intake Sales Velocity
+    category_id: finance
+    definition: Real-time intake revenue rate partitioned by 15-minute intervals and
+      category hierarchy paths against baseline pacing.
+    formula: SUM(sales_event_stream.event_amount_eur) / 15
+    synonyms:
+    - sales velocity
+    - 15min run rate
+    - category sales intake
+    - intake pacing
+    bindings:
+    - table: sales_event_stream
+      column: event_amount_eur
+    - table: category_15min_targets
+      column: target_sales_eur
+    - table: categories
+      column: category_name
+    - table: category_hierarchy_paths
+      column: hierarchy_path
+    - table: distribution_centers
+      column: name
+  - id: live_chat_support_resolution
+    display_name: Live Chat Customer Support & Knowledge Base Deflection
+    category_id: customer_service
+    definition: Real-time live chat session metrics, agent messaging throughput, and
+      knowledge base self-service deflection rate.
+    formula: COUNT(DISTINCT live_chat_sessions.session_id) / COUNT(DISTINCT support_tickets.ticket_id)
+    synonyms:
+    - live chat volume
+    - chat response time
+    - knowledge base deflection
+    - help center reads
+    bindings:
+    - table: live_chat_sessions
+      column: session_id
+    - table: live_chat_messages
+      column: message_text
+    - table: knowledge_base_articles
+      column: view_count
+  - id: replacement_order_and_warranty_rate
+    display_name: Replacement Order & Warranty Claim Rate
+    category_id: returns_rma
+    definition: Incidence rate of zero-cost replacement orders dispatched and manufacturer
+      warranty claims filed due to transit damages or product defects.
+    formula: COUNT(warranty_claims.claim_id) / COUNT(orders.order_id)
+    synonyms:
+    - warranty claim rate
+    - replacement order cost
+    - restocking fee yield
+    bindings:
+    - table: warranty_claims
+      column: claim_id
+    - table: replacement_orders
+      column: replacement_order_id
+    - table: restocking_fee_logs
+      column: fee_amount_eur
+  - id: omnichannel_sms_and_push_engagement
+    display_name: Omnichannel SMS & Mobile Push Notification Engagement
+    category_id: lifecycle_marketing
+    definition: Delivery success and interaction CTR for automated SMS alerts and
+      mobile application push broadcasts.
+    formula: COUNTIF(push_notification_receipts.status = OPENED) / COUNT(mobile_app_push_campaigns.campaign_id)
+    synonyms:
+    - push notification CTR
+    - SMS broadcast delivery
+    - mobile push engagement
+    bindings:
+    - table: sms_marketing_broadcasts
+      column: broadcast_id
+    - table: sms_delivery_receipts
+      column: delivery_status
+    - table: mobile_app_push_campaigns
+      column: campaign_id
+    - table: push_notification_receipts
+      column: status
+    - table: marketing_campaigns
+      column: campaign_name
+    - table: user_subscription_preferences
+      column: opt_in_sms
+  - id: customer_referral_acquisition_yield
+    display_name: Customer Referral Program Acquisition Yield
+    category_id: loyalty_retention
+    definition: Number of qualified newly registered customers acquired per referral
+      invitation link shared by existing brand advocates.
+    formula: COUNT(referral_reward_claims.claim_id) / COUNT(referral_program_invites.invite_id)
+    synonyms:
+    - referral conversion rate
+    - viral coefficient
+    - referral reward claim rate
+    bindings:
+    - table: referral_program_invites
+      column: invite_id
+    - table: referral_reward_claims
+      column: reward_amount_eur
+  - id: pallet_and_intercompany_logistics
+    display_name: Pallet Inventory & Intercompany Transfer Pricing
+    category_id: supply_chain
+    definition: Warehouse pallet-level location tracking and cross-border intercompany
+      transfer pricing allocations.
+    formula: SUM(intercompany_transfer_pricing.transfer_price_eur)
+    synonyms:
+    - pallet tracking
+    - intercompany transfer
+    - cross-border entity pricing
+    bindings:
+    - table: pallet_inventory_locations
+      column: pallet_id
+    - table: intercompany_transfer_pricing
+      column: transfer_price_eur
+    - table: payment_gateway_fee_schedules
+      column: fee_percentage
+  - id: catalog_seo_and_legacy_lifecycle
+    display_name: Catalog SEO Metadata & Legacy Product Lifecycle
+    category_id: product_pim
+    definition: Organic search engine meta tag coverage and archival tracking for
+      deprecated catalog products and historical order logs.
+    formula: COUNT(seo_meta_tags_registry.tag_id) / COUNT(products.product_id)
+    synonyms:
+    - SEO meta tags
+    - deprecated products archive
+    - legacy order history
+    bindings:
+    - table: seo_meta_tags_registry
+      column: meta_title
+    - table: legacy_products_deprecated
+      column: deprecation_date
+    - table: legacy_orders_2023_archive
+      column: order_id
+  - id: sandbox_and_test_simulation_governance
+    display_name: Sandbox Test Simulators & Synthetic Validation Harness
+    category_id: data_governance
+    definition: Non-production sandbox environments for synthetic load testing, fraud
+      simulation, pricing experimentation, and web event telemetry.
+    formula: COUNT(qa_checkout_synthetic_fuzz_tests.test_id)
+    synonyms:
+    - sandbox pricing simulation
+    - QA load test
+    - synthetic fraud test
+    - clickstream web events
+    bindings:
+    - table: sandbox_dynamic_pricing_sim_v1
+      column: sim_id
+    - table: sandbox_search_ranking_ab_test
+      column: variant
+    - table: qa_checkout_synthetic_fuzz_tests
+      column: test_id
+    - table: qa_load_test_sessions_backup
+      column: session_id
+    - table: test_carrier_webhook_payloads
+      column: payload_id
+    - table: test_fraud_mock_transactions
+      column: transaction_id
+    - table: web_events
+      column: event_type
+  - id: this_week
+    display_name: This Week (Black Week 2026)
+    category_id: temporal_context
+    definition: "In the Lumi\xE8reShop executive incident simulation, 'this week'\
+      \ (or 'current week') refers to Black Week 2026 (the week starting Monday, November\
+      \ 23, 2026 through Monday, November 30, 2026 / Cyber Monday). For actual transactions,\
+      \ inventory, and marketing events, records are available from Monday, November\
+      \ 23, 2026 00:00:00 UTC up to the incident cutoff of Friday, November 27, 2026\
+      \ 14:30:00 UTC. Planned target pacing tables cover the entire 8-day promotional\
+      \ week (November 23\u201330, 2026)."
+    formula: created_at BETWEEN '2026-11-23 00:00:00 UTC' AND '2026-11-27 14:30:00
+      UTC'
+    synonyms:
+    - this week
+    - current week
+    - black week
+    - black week 2026
+    - promotional week
+    - wtd
+    - week to date
+    - the week so far
+    - current promotional week
+    - sales this week
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: daily_category_targets
+      column: date
+    - table: weekly_commercial_targets
+      column: week_start_date
+    - table: daily_ad_performance
+      column: date
+    - table: sales_event_stream
+      column: timestamp
+    - table: web_sessions
+      column: session_started_at
+  - id: today
+    display_name: Today (Black Friday 2026-11-27)
+    category_id: temporal_context
+    definition: "In the Lumi\xE8reShop simulation, 'today' refers to Black Friday\
+      \ (Friday, November 27, 2026) from 00:00:00 UTC up to the active incident simulation\
+      \ cutoff at 14:30:00 UTC. SQL queries filtering for 'today' or 'today's sales'\
+      \ must filter for date '2026-11-27' or timestamp range between '2026-11-27 00:00:00\
+      \ UTC' and '2026-11-27 14:30:00 UTC'."
+    formula: DATE(created_at) = '2026-11-27' AND created_at <= '2026-11-27 14:30:00
+      UTC'
+    synonyms:
+    - today
+    - current day
+    - this day
+    - black friday
+    - black friday 2026
+    - today's actuals
+    - today so far
+    - friday actuals
+    - incident day
+    - today's data
+    - today's sales
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: category_15min_targets
+      column: date
+    - table: daily_category_targets
+      column: date
+    - table: daily_ad_performance
+      column: date
+    - table: web_sessions
+      column: session_started_at
+    - table: sales_event_stream
+      column: timestamp
+  - id: yesterday
+    display_name: Yesterday (Black Thursday / Thanksgiving 2026-11-26)
+    category_id: temporal_context
+    definition: "In the Lumi\xE8reShop simulation, 'yesterday' refers to the full\
+      \ calendar day preceding Black Friday, which is Thursday, November 26, 2026\
+      \ (Thanksgiving / Black Thursday). SQL queries filtering for 'yesterday' must\
+      \ filter for DATE = '2026-11-26' or timestamp between '2026-11-26 00:00:00 UTC'\
+      \ and '2026-11-26 23:59:59 UTC'."
+    formula: DATE(created_at) = '2026-11-26'
+    synonyms:
+    - yesterday
+    - previous day
+    - day before today
+    - black thursday
+    - thanksgiving
+    - thursday actuals
+    - prior day
+    - yesterday's data
+    - yesterday's sales
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: daily_category_targets
+      column: date
+    - table: daily_ad_performance
+      column: date
+    - table: web_sessions
+      column: session_started_at
+  - id: previous_week
+    display_name: Previous Week (Pre-Black Week Baseline 2026-11-16 to 2026-11-22)
+    category_id: temporal_context
+    definition: "In the Lumi\xE8reShop simulation, 'previous week' (or 'last week')\
+      \ refers to the full 7-day pre-promotional baseline week immediately preceding\
+      \ Black Week, spanning Monday, November 16, 2026 through Sunday, November 22,\
+      \ 2026. SQL queries comparing current performance against last week must use\
+      \ this date range."
+    formula: created_at >= '2026-11-16 00:00:00 UTC' AND created_at < '2026-11-23
+      00:00:00 UTC'
+    synonyms:
+    - previous week
+    - last week
+    - prior week
+    - pre-black week
+    - pre-promotional baseline week
+    - week before black week
+    - baseline week
+    - last week's sales
+    - previous week's revenue
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: daily_ad_performance
+      column: date
+    - table: web_sessions
+      column: session_started_at
+    - table: historical_sales_summary
+      column: week_start
+  - id: two_weeks_ago
+    display_name: Two Weeks Ago (2026-11-09 to 2026-11-15)
+    category_id: temporal_context
+    definition: "In the Lumi\xE8reShop simulation, 'two weeks ago' refers to the 7-day\
+      \ baseline period spanning Monday, November 9, 2026 through Sunday, November\
+      \ 15, 2026."
+    formula: created_at >= '2026-11-09 00:00:00 UTC' AND created_at < '2026-11-16
+      00:00:00 UTC'
+    synonyms:
+    - two weeks ago
+    - 2 weeks ago
+    - fortnight ago
+    - early november baseline
+    - 2 weeks prior
+    - two weeks before
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: web_sessions
+      column: session_started_at
+    - table: daily_ad_performance
+      column: date
+  - id: this_month
+    display_name: This Month (November 2026 MTD)
+    category_id: temporal_context
+    definition: "In the Lumi\xE8reShop simulation, 'this month' refers to November\
+      \ 2026 Month-to-Date (MTD), spanning from November 1, 2026 00:00:00 UTC up to\
+      \ the simulation cutoff on Friday, November 27, 2026 14:30:00 UTC."
+    formula: DATE(created_at) >= '2026-11-01' AND created_at <= '2026-11-27 14:30:00
+      UTC'
+    synonyms:
+    - this month
+    - current month
+    - november 2026
+    - mtd
+    - month to date
+    - november revenue
+    - november sales
+    - monthly actuals
+    - month so far
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: daily_ad_performance
+      column: date
+    - table: web_sessions
+      column: session_started_at
+    - table: monthly_financial_actuals
+      column: month
+  - id: last_month
+    display_name: Last Month (October 2026)
+    category_id: temporal_context
+    definition: "In the Lumi\xE8reShop simulation, 'last month' (or 'previous month')\
+      \ refers to October 2026, containing historical baseline data in the dataset\
+      \ (October 11, 2026 through October 31, 2026)."
+    formula: DATE(created_at) BETWEEN '2026-10-01' AND '2026-10-31'
+    synonyms:
+    - last month
+    - previous month
+    - prior month
+    - october 2026
+    - october sales
+    - october revenue
+    - past month
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: daily_ad_performance
+      column: date
+    - table: web_sessions
+      column: session_started_at
+  - id: simulation_anchor_now
+    display_name: Current Simulation Time (2026-11-27 14:30 UTC)
+    category_id: temporal_context
+    definition: "The exact fixed point-in-time simulation anchor for Lumi\xE8reShop:\
+      \ Friday, November 27, 2026 at 14:30:00 UTC (Black Friday early afternoon).\
+      \ The business scenario takes place at this exact moment during executive incident\
+      \ triage. Zero operational records exist after this timestamp."
+    formula: TIMESTAMP '2026-11-27 14:30:00 UTC'
+    synonyms:
+    - now
+    - current time
+    - right now
+    - current moment
+    - as of now
+    - incident time
+    - simulation cutoff
+    - present time
+    - latest available data
+    - real time now
+    bindings:
+    - table: orders
+      column: created_at
+    - table: category_15min_targets
+      column: time_interval
+    - table: sales_event_stream
+      column: timestamp
+    - table: agent_interaction_logs
+      column: timestamp
+  - id: cyber_monday
+    display_name: Cyber Monday (2026-11-30)
+    category_id: temporal_context
+    definition: The final day of the 8-day Black Week promotional campaign, taking
+      place on Monday, November 30, 2026. Commercial targets and promotional schedules
+      are planned through this date.
+    formula: date = '2026-11-30'
+    synonyms:
+    - cyber monday
+    - cyber monday 2026
+    - cm 2026
+    - end of black week
+    - cyber week finale
+    - cyber monday targets
+    bindings:
+    - table: daily_category_targets
+      column: date
+    - table: category_15min_targets
+      column: date
+    - table: weekly_commercial_targets
+      column: week_start_date
+    - table: promotions
+      column: end_date
+  - id: black_week_monday
+    display_name: Black Week Monday (2026-11-23)
+    category_id: temporal_context
+    definition: The opening day of Black Week 2026 on Monday, November 23, 2026 (Day
+      1 of promotional campaign).
+    formula: DATE(created_at) = '2026-11-23'
+    synonyms:
+    - monday of this week
+    - black week monday
+    - start of black week
+    - day 1 of black week
+    - nov 23
+    - first day of black week
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: daily_category_targets
+      column: date
+    - table: daily_ad_performance
+      column: date
+  - id: black_week_tuesday
+    display_name: Black Week Tuesday / Stockout Incident Day (2026-11-24)
+    category_id: temporal_context
+    definition: Tuesday, November 24, 2026 of Black Week. The critical day when the
+      top 3 best-selling Beauty SKUs experienced premature physical stockouts at the
+      European distribution centers by 10:30 UTC.
+    formula: DATE(created_at) = '2026-11-24'
+    synonyms:
+    - tuesday of this week
+    - black week tuesday
+    - stockout day
+    - tuesday actuals
+    - nov 24
+    - day 2 of black week
+    - oos day
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: oos_interactions
+      column: clicked_at
+    - table: inventory_snapshots
+      column: recorded_at
+    - table: daily_category_targets
+      column: date
+  - id: black_week_wednesday
+    display_name: Black Week Wednesday / Recommender Degradation Day (2026-11-25)
+    category_id: temporal_context
+    definition: Wednesday, November 25, 2026 of Black Week. The day when catalog recommendation
+      algorithms fell back to low-margin generic items following stockouts, causing
+      conversion rate (CVR) and average order value (AOV) to decline.
+    formula: DATE(created_at) = '2026-11-25'
+    synonyms:
+    - wednesday of this week
+    - black week wednesday
+    - mid-week
+    - wednesday actuals
+    - nov 25
+    - day 3 of black week
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: catalog_recommender_logs
+      column: recorded_at
+    - table: daily_category_targets
+      column: date
+  - id: black_week_thursday
+    display_name: Black Week Thursday / Ad Throttle Day (2026-11-26)
+    category_id: temporal_context
+    definition: Thursday, November 26, 2026 of Black Week (Thanksgiving / Black Thursday).
+      The day when Meta Ads automated Target ROAS bidding algorithms detected falling
+      on-page conversion value and throttled paid acquisition spend by 31%.
+    formula: DATE(created_at) = '2026-11-26'
+    synonyms:
+    - thursday of this week
+    - black week thursday
+    - thanksgiving
+    - ad throttle day
+    - nov 26
+    - day 4 of black week
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: ad_bidding_log
+      column: timestamp
+    - table: daily_ad_performance
+      column: date
+    - table: daily_category_targets
+      column: date
+  - id: historical_baseline_period
+    display_name: Historical Baseline Period (2026-10-11 to 2026-11-22)
+    category_id: temporal_context
+    definition: The 6-week historical baseline period in ecommerce_dw spanning October
+      11, 2026 to November 22, 2026, capturing steady-state operations, seasonal trends,
+      and baseline run-rates prior to Black Week promotional surge.
+    formula: created_at >= '2026-10-11 00:00:00 UTC' AND created_at < '2026-11-23
+      00:00:00 UTC'
+    synonyms:
+    - historical baseline
+    - past 6 weeks
+    - last 6 weeks
+    - pre-event period
+    - historical actuals
+    - baseline period
+    - historical trend
+    - 6 week history
+    bindings:
+    - table: orders
+      column: created_at
+    - table: order_items
+      column: created_at
+    - table: inventory_snapshots
+      column: recorded_at
+    - table: daily_ad_performance
+      column: date
+    - table: web_sessions
+      column: session_started_at
+  - id: q4_2026
+    display_name: Fourth Quarter / Q4 2026 (2026-10-01 to 2026-12-31)
+    category_id: temporal_context
+    definition: The fourth financial and operational quarter of 2026 (Q4), spanning
+      October 1, 2026 through December 31, 2026 (with historical and Black Week actuals
+      recorded up to Friday, November 27, 2026 14:30:00 UTC).
+    formula: DATE(created_at) >= '2026-10-01' AND created_at <= '2026-11-27 14:30:00
+      UTC'
+    synonyms:
+    - q4
+    - q4 2026
+    - fourth quarter
+    - this quarter
+    - current quarter
+    - holiday quarter
+    - q4 revenue
+    - q4 targets
+    bindings:
+    - table: orders
+      column: created_at
+    - table: weekly_commercial_targets
+      column: week_start_date
+    - table: daily_category_targets
+      column: date
+    - table: monthly_financial_actuals
+      column: month
+  - id: intraday_pacing_intervals
+    display_name: Intraday 15-Minute Pacing Intervals (Today / Black Friday)
+    category_id: temporal_context
+    definition: 15-minute granular pacing intervals on Black Friday (96 intervals
+      per day), from 00:00 UTC up to 14:30 UTC for actuals, and full day for planned
+      targets.
+    formula: date = '2026-11-27' AND time_interval <= '14:30'
+    synonyms:
+    - 15-minute pacing
+    - hourly pacing
+    - intraday pacing
+    - real-time pacing
+    - 15min targets
+    - today's curve
+    - intraday revenue
+    - hourly sales
+    bindings:
+    - table: category_15min_targets
+      column: time_interval
+    - table: sales_event_stream
+      column: timestamp

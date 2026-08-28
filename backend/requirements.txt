@@ -1,0 +1,15 @@
+# ==============================================================================
+# LumièreShop Backend Application Dependencies
+# ==============================================================================
+
+# Core Web Framework & ASGI Server
+fastapi==0.115.0
+uvicorn==0.30.6
+pydantic==2.8.2
+
+# HTTP & REST Client
+requests==2.32.3
+
+# Google Cloud Platform SDKs & BigQuery Client
+google-cloud-bigquery==3.25.0
+google-auth==2.34.0
