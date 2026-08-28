@@ -106,38 +106,154 @@ def delete_resource(url: str, headers: Dict[str, str], resource_type: str, resou
         return False
 
 
-def delete_glossary_terms_and_categories(token: str, glossary_id: str):
-    """Lists and deletes all terms and categories inside the glossary before removing glossary."""
+def delete_all_entry_links(token: str, entry_locations: List[str]):
+    """Purges all EntryLinks across BigQuery and Dataplex entryGroups."""
+    headers = {"Authorization": f"Bearer {token}", "x-goog-user-project": PROJECT_ID}
+    print(f"\n[Step 1/5] Purging Knowledge Catalog EntryLinks across locations {entry_locations}...")
+    
+    deleted_links = 0
+    for loc in entry_locations:
+        for eg in ["@bigquery", "@dataplex"]:
+            url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{loc}/entryGroups/{eg}/entryLinks?pageSize=300"
+            page_token = ""
+            while True:
+                req_url = f"{url}&pageToken={page_token}" if page_token else url
+                try:
+                    r = requests.get(req_url, headers=headers, timeout=10)
+                    if r.status_code == 200:
+                        data = r.json()
+                        links = data.get("entryLinks", [])
+                        for l in links:
+                            l_name = l.get("name", "")
+                            if l_name:
+                                link_id = l_name.split("/")[-1]
+                                if delete_resource(f"https://dataplex.googleapis.com/v1/{l_name}", headers, "EntryLink", link_id):
+                                    deleted_links += 1
+                        page_token = data.get("nextPageToken", "")
+                        if not page_token or not links:
+                            break
+                    else:
+                        break
+                except Exception:
+                    break
+
+
+def delete_all_glossary_terms(token: str, glossary_id: str):
+    """Deletes all terms from the glossary using full pagination and local config enumeration."""
     headers = {"Authorization": f"Bearer {token}", "x-goog-user-project": PROJECT_ID}
     base_url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/glossaries/{glossary_id}"
 
-    # 1. Delete Terms
-    terms_url = f"{base_url}/terms"
-    try:
-        r = requests.get(terms_url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            terms = r.json().get("terms", [])
-            for t in terms:
-                t_name = t.get("name", "")
-                if t_name:
-                    term_id = t_name.split("/")[-1]
-                    delete_resource(f"{base_url}/terms/{term_id}", headers, "Glossary Term", term_id)
-    except Exception as e:
-        print(f"  Notice: Terms cleanup: {e}")
+    term_ids = set()
 
-    # 2. Delete Categories
-    cats_url = f"{base_url}/categories"
-    try:
-        r = requests.get(cats_url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            cats = r.json().get("categories", [])
-            for c in cats:
-                c_name = c.get("name", "")
-                if c_name:
-                    cat_id = c_name.split("/")[-1]
-                    delete_resource(f"{base_url}/categories/{cat_id}", headers, "Glossary Category", cat_id)
-    except Exception as e:
-        print(f"  Notice: Categories cleanup: {e}")
+    # 1. Enumerate all term IDs from local config files
+    for cfg_name in ["business_glossary.json", "business_glossary.yaml"]:
+        cfg_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", cfg_name)
+        if os.path.exists(cfg_path):
+            try:
+                if cfg_name.endswith(".json"):
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        data = json.load(f).get("glossary", {})
+                        for t in data.get("terms", []):
+                            if t.get("id"):
+                                term_ids.add(t["id"])
+                elif cfg_name.endswith(".yaml"):
+                    try:
+                        import yaml
+                        with open(cfg_path, "r", encoding="utf-8") as f:
+                            data = yaml.safe_load(f).get("glossary", {})
+                            for t in data.get("terms", []):
+                                if t.get("id"):
+                                    term_ids.add(t["id"])
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+    # 2. Paginate over all terms from GCP API
+    page_token = ""
+    while True:
+        url = f"{base_url}/terms?pageSize=300"
+        if page_token:
+            url += f"&pageToken={page_token}"
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                terms = data.get("terms", [])
+                for t in terms:
+                    t_name = t.get("name", "")
+                    if t_name:
+                        term_ids.add(t_name.split("/")[-1])
+                page_token = data.get("nextPageToken", "")
+                if not page_token or not terms:
+                    break
+            else:
+                break
+        except Exception:
+            break
+
+    print(f"  Found {len(term_ids)} glossary terms to purge...")
+    for t_id in sorted(term_ids):
+        delete_resource(f"{base_url}/terms/{t_id}", headers, "Glossary Term", t_id)
+
+
+def delete_all_glossary_categories(token: str, glossary_id: str):
+    """Deletes all categories from the glossary using full pagination and local config enumeration."""
+    headers = {"Authorization": f"Bearer {token}", "x-goog-user-project": PROJECT_ID}
+    base_url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/glossaries/{glossary_id}"
+
+    cat_ids = set()
+
+    # 1. Enumerate all category IDs from local config files
+    for cfg_name in ["business_glossary.json", "business_glossary.yaml"]:
+        cfg_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", cfg_name)
+        if os.path.exists(cfg_path):
+            try:
+                if cfg_name.endswith(".json"):
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        data = json.load(f).get("glossary", {})
+                        for c in data.get("categories", []):
+                            if c.get("id"):
+                                cat_ids.add(c["id"])
+                elif cfg_name.endswith(".yaml"):
+                    try:
+                        import yaml
+                        with open(cfg_path, "r", encoding="utf-8") as f:
+                            data = yaml.safe_load(f).get("glossary", {})
+                            for c in data.get("categories", []):
+                                if c.get("id"):
+                                    cat_ids.add(c["id"])
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+    # 2. Paginate over all categories from GCP API
+    page_token = ""
+    while True:
+        url = f"{base_url}/categories?pageSize=300"
+        if page_token:
+            url += f"&pageToken={page_token}"
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                cats = data.get("categories", [])
+                for c in cats:
+                    c_name = c.get("name", "")
+                    if c_name:
+                        cat_ids.add(c_name.split("/")[-1])
+                page_token = data.get("nextPageToken", "")
+                if not page_token or not cats:
+                    break
+            else:
+                break
+        except Exception:
+            break
+
+    print(f"  Found {len(cat_ids)} glossary categories to purge...")
+    for c_id in sorted(cat_ids):
+        delete_resource(f"{base_url}/categories/{c_id}", headers, "Glossary Category", c_id)
 
 
 def cleanup_knowledge_catalog():
@@ -165,26 +281,33 @@ def cleanup_knowledge_catalog():
     }
 
     # --------------------------------------------------------------------------
-    # 1. Delete Business Glossaries
+    # 1. Delete EntryLinks
     # --------------------------------------------------------------------------
-    print("\n[Step 1/4] Purging Knowledge Catalog Business Glossaries...")
+    entry_locs = list(dict.fromkeys([BQ_LOCATION, "us-central1", "europe-west4", "global"]))
+    delete_all_entry_links(token, entry_locs)
+
+    # --------------------------------------------------------------------------
+    # 2. Delete Business Glossaries, Terms, and Categories
+    # --------------------------------------------------------------------------
+    print("\n[Step 2/5] Purging Knowledge Catalog Business Glossaries & Terms...")
     glossary_id = "ecommerce-glossary"
-    delete_glossary_terms_and_categories(token, glossary_id)
+    delete_all_glossary_terms(token, glossary_id)
+    delete_all_glossary_categories(token, glossary_id)
     glossary_url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/glossaries/{glossary_id}"
     delete_resource(glossary_url, headers, "Business Glossary", glossary_id)
 
     # --------------------------------------------------------------------------
-    # 2. Delete Custom AspectTypes
+    # 3. Delete Custom AspectTypes
     # --------------------------------------------------------------------------
-    print("\n[Step 2/4] Purging Custom AspectTypes...")
+    print("\n[Step 3/5] Purging Custom AspectTypes...")
     aspect_type_id = "enterprise-data-context"
     aspect_url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/aspectTypes/{aspect_type_id}"
     delete_resource(aspect_url, headers, "AspectType", aspect_type_id)
 
     # --------------------------------------------------------------------------
-    # 3. Delete DataScans (Data Profiling)
+    # 4. Delete DataScans (Data Profiling)
     # --------------------------------------------------------------------------
-    print(f"\n[Step 3/4] Purging Knowledge Catalog DataScans in '{BQ_LOCATION}'...")
+    print(f"\n[Step 4/5] Purging Knowledge Catalog DataScans across {entry_locs}...")
     data_scans = [
         "profile-payment-logs",
         "profile-daily-ad-perf",
@@ -192,14 +315,15 @@ def cleanup_knowledge_catalog():
         "profile-shipping-lead-times",
         "profile-catalog-recommender"
     ]
-    for scan_id in data_scans:
-        scan_url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{BQ_LOCATION}/dataScans/{scan_id}"
-        delete_resource(scan_url, headers, "DataScan", scan_id)
+    for loc in entry_locs:
+        for scan_id in data_scans:
+            scan_url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{loc}/dataScans/{scan_id}"
+            delete_resource(scan_url, headers, f"DataScan ({loc})", scan_id)
 
     # --------------------------------------------------------------------------
-    # 4. Delete Gemini Data Agents
+    # 5. Delete Gemini Data Agents
     # --------------------------------------------------------------------------
-    print("\n[Step 4/4] Purging Gemini Enterprise Data Agents...")
+    print("\n[Step 5/5] Purging Gemini Enterprise Data Agents...")
     agent_ids = list(dict.fromkeys([
         DATA_AGENT_ID,
         "gda-lumiere-primary",
@@ -237,3 +361,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
