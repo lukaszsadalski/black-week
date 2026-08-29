@@ -21,11 +21,7 @@ from test_utils import load_project_env, get_gcp_access_token
 
 load_project_env()
 
-PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
-DATASET_ID = os.environ.get("BQ_DATASET_ID", "ecommerce_dw")
-LOCATION = os.environ.get("BQ_LOCATION", "us-central1")
-USER_IDENTITY = os.environ.get("GCP_USER_IDENTITY", "user@example.com")
-DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID", "gda-lumiere-primary")
+from app.config import PROJECT_ID, DATASET_ID, LOCATION, USER_IDENTITY, DATA_AGENT_ID, DATA_AGENT_A_ID, DATA_AGENT_B_ID, DATA_AGENT_C_ID
 
 
 def test_conversational_analytics_api():

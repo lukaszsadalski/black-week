@@ -8,10 +8,10 @@ and provisions/grounds the Google Cloud Data Agents with zero static bias.
 
 Agents Provisioned & Grounded:
 ------------------------------
-1. Primary CMO Agent (`DATA_AGENT_ID`): Grounded via Knowledge Catalog search for the Black Friday Alert prompt.
-2. Agent A (`gda-lumiere-a`): Grounded via Knowledge Catalog search for Candidate Prompt A (Incident Triage).
-3. Agent B (`gda-lumiere-b`): Grounded via Knowledge Catalog search for Candidate Prompt B (Stockouts & Revenue Loss).
-4. Agent C (`gda-lumiere-c`): Grounded via Knowledge Catalog search for Candidate Prompt C (Intraday Pacing & Ads).
+1. Primary Data Agent (`DATA_AGENT_ID`): Grounded via Knowledge Catalog search for the primary business inquiry.
+2. Data Agent A (`DATA_AGENT_A_ID`): Grounded via Knowledge Catalog search for Prompt A.
+3. Data Agent B (`DATA_AGENT_B_ID`): Grounded via Knowledge Catalog search for Prompt B.
+4. Data Agent C (`DATA_AGENT_C_ID`): Grounded via Knowledge Catalog search for Prompt C.
 
 Usage:
 ------
@@ -43,29 +43,65 @@ load_dotenv()
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
 DATASET_ID = os.environ.get("BQ_DATASET_ID", "ecommerce_dw")
 DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b")
+DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-lumiere-a")
+DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-lumiere-b")
+DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-lumiere-c")
 
 PROMPTS = {
     "primary": (
+        "DATA_AGENT_ID",
         DATA_AGENT_ID,
-        "LumiereShop Primary CMO Data Agent",
+        "LumiereShop Primary Data Agent",
         "It's Black Friday 14:30. Please prepare the data that will serve to find root cause of the problem of decreased revenue comparing to forecasted revenue during Black Week Sales."
     ),
     "agent_a": (
-        "gda-lumiere-a",
-        "LumiereShop Agent A (Incident Triage)",
+        "DATA_AGENT_A_ID",
+        DATA_AGENT_A_ID,
+        "LumiereShop Data Agent A",
         "Why did Beauty category miss target revenue during Black Week?"
     ),
     "agent_b": (
-        "gda-lumiere-b",
-        "LumiereShop Agent B (Stockouts & Availability)",
+        "DATA_AGENT_B_ID",
+        DATA_AGENT_B_ID,
+        "LumiereShop Data Agent B",
         "Show stock-out interactions and lost revenue for Beauty products SKU-1001, SKU-1002, SKU-1003."
     ),
     "agent_c": (
-        "gda-lumiere-c",
-        "LumiereShop Agent C (Intraday Pacing & Ad Spend)",
+        "DATA_AGENT_C_ID",
+        DATA_AGENT_C_ID,
+        "LumiereShop Data Agent C",
         "Show 15-minute intraday target vs actual revenue curve for Beauty on Friday."
     ),
 }
+
+
+def update_env_variable(key: str, value: str):
+    """Persists updated agent ID into root .env file."""
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if not os.path.exists(env_path):
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.write(f"{key}={value}\n")
+        os.environ[key] = value
+        return
+
+    with open(env_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    updated = False
+    new_lines = []
+    for line in lines:
+        if line.strip().startswith(f"{key}="):
+            new_lines.append(f"{key}={value}\n")
+            updated = True
+        else:
+            new_lines.append(line)
+
+    if not updated:
+        new_lines.append(f"{key}={value}\n")
+
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.writelines(new_lines)
+    os.environ[key] = value
 
 
 def get_access_token():
@@ -136,9 +172,10 @@ def search_knowledge_catalog_dynamic(prompt: str, token: str) -> List[str]:
         return []
 
 
-def provision_or_update_data_agent(agent_id: str, display_name: str, description: str, tables: List[str], headers: Dict[str, str]) -> bool:
+def provision_or_update_data_agent(agent_id: str, display_name: str, description: str, tables: List[str], headers: Dict[str, str]) -> tuple:
     """
     Idempotently creates or updates a BigQuery Data Agent in Google Cloud with dynamically discovered tables.
+    Returns (success: bool, active_agent_id: str).
     """
     table_refs = [
         {"projectId": PROJECT_ID, "datasetId": DATASET_ID, "tableId": t_name}
@@ -169,7 +206,7 @@ def provision_or_update_data_agent(agent_id: str, display_name: str, description
         res = requests.patch(patch_url, headers=headers, json=payload, timeout=30)
         if res.status_code in [200, 201]:
             print(f"  ✅ Data Agent '{agent_id}' updated successfully ({len(table_refs)} tables grounded).")
-            return True
+            return True, agent_id
         elif res.status_code == 404:
             print(f"  ℹ️ Agent '{agent_id}' does not exist (HTTP 404). Creating dynamically...")
             # 2. Try POST to create new agent
@@ -177,7 +214,7 @@ def provision_or_update_data_agent(agent_id: str, display_name: str, description
             create_res = requests.post(create_url, headers=headers, json=payload, timeout=30)
             if create_res.status_code in [200, 201]:
                 print(f"  ✅ Data Agent '{agent_id}' created and grounded successfully ({len(table_refs)} tables).")
-                return True
+                return True, agent_id
             elif "SOFT_DELETED" in create_res.text:
                 print(f"  ℹ️ Notice: Agent ID '{agent_id}' is in Google Cloud CCFE SOFT_DELETED tombstone state.")
                 # Fallback to an active replacement revision ID
@@ -186,15 +223,15 @@ def provision_or_update_data_agent(agent_id: str, display_name: str, description
                 alt_res = requests.post(alt_create_url, headers=headers, json=payload, timeout=30)
                 if alt_res.status_code in [200, 201]:
                     print(f"  ✅ Data Agent '{alt_id}' created and grounded successfully ({len(table_refs)} tables).")
-                    return True
+                    return True, alt_id
                 else:
                     alt_patch_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{alt_id}?updateMask=displayName,description,dataAnalyticsAgent.publishedContext.datasourceReferences"
                     alt_patch = requests.patch(alt_patch_url, headers=headers, json=payload, timeout=30)
                     if alt_patch.status_code in [200, 201]:
                         print(f"  ✅ Data Agent '{alt_id}' updated and grounded successfully ({len(table_refs)} tables).")
-                        return True
+                        return True, alt_id
             print(f"  ❌ Failed to create agent '{agent_id}' (HTTP {create_res.status_code}): {create_res.text}", file=sys.stderr)
-            return False
+            return False, agent_id
         elif "SOFT_DELETED" in res.text:
             print(f"  ℹ️ Notice: Agent ID '{agent_id}' is in Google Cloud CCFE SOFT_DELETED tombstone state.")
             alt_id = f"{agent_id}-v2"
@@ -202,21 +239,21 @@ def provision_or_update_data_agent(agent_id: str, display_name: str, description
             alt_res = requests.post(alt_create_url, headers=headers, json=payload, timeout=30)
             if alt_res.status_code in [200, 201]:
                 print(f"  ✅ Data Agent '{alt_id}' created and grounded successfully ({len(table_refs)} tables).")
-                return True
+                return True, alt_id
             else:
                 alt_patch_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{alt_id}?updateMask=displayName,description,dataAnalyticsAgent.publishedContext.datasourceReferences"
                 alt_patch = requests.patch(alt_patch_url, headers=headers, json=payload, timeout=30)
                 if alt_patch.status_code in [200, 201]:
                     print(f"  ✅ Data Agent '{alt_id}' updated and grounded successfully ({len(table_refs)} tables).")
-                    return True
+                    return True, alt_id
             print(f"  ❌ Failed to provision replacement for tombstoned agent '{agent_id}'", file=sys.stderr)
-            return False
+            return False, agent_id
         else:
             print(f"  ❌ Failed to patch agent '{agent_id}' (HTTP {res.status_code}): {res.text}", file=sys.stderr)
-            return False
+            return False, agent_id
     except Exception as e:
         print(f"  ❌ Error contacting Conversational Analytics API: {e}", file=sys.stderr)
-        return False
+        return False, agent_id
 
 
 CORE_INVESTIGATION_TABLES = [
@@ -266,7 +303,8 @@ def main():
     }
 
     success_count = 0
-    for key, (agent_id, display_name, prompt) in PROMPTS.items():
+    configured_agents = {}
+    for key, (env_key, agent_id, display_name, prompt) in PROMPTS.items():
         print(f"\n[Dynamic Discovery] Querying Knowledge Catalog for: '{prompt[:60]}...'")
         discovered_tables = search_knowledge_catalog_dynamic(prompt, token)
         
@@ -278,12 +316,18 @@ def main():
         print(f"  Tables: {discovered_tables}")
 
         desc = f"Grounded with {len(discovered_tables)} tables discovered via Knowledge Catalog semantic discovery."
-        ok = provision_or_update_data_agent(agent_id, display_name, desc, discovered_tables, headers)
+        ok, active_id = provision_or_update_data_agent(agent_id, display_name, desc, discovered_tables, headers)
         if ok:
             success_count += 1
+            configured_agents[env_key] = active_id
+            if active_id != agent_id:
+                print(f"  📝 Updating .env variable {env_key}={active_id}")
+                update_env_variable(env_key, active_id)
 
     print("\n" + "=" * 80)
     print(f"DYNAMIC GROUNDING COMPLETE: {success_count}/{len(PROMPTS)} agents dynamically configured.")
+    for k, v in configured_agents.items():
+        print(f"  • {k:<18} : {v}")
     print("=" * 80)
 
 

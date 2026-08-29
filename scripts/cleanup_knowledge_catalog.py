@@ -22,10 +22,10 @@ Resources Cleaned:
    - `profile-shipping-lead-times`
    - `profile-catalog-recommender`
 4. Gemini Enterprise Agent Platform Data Agents (location: `global`):
-   - `DATA_AGENT_ID` (e.g. `gda-lumiere-primary` or custom ID)
-   - `gda-lumiere-a` (Incident Triage)
-   - `gda-lumiere-b` (Stockouts & Availability)
-   - `gda-lumiere-c` (Intraday Pacing & Ad Spend)
+   - Primary Data Agent (`DATA_AGENT_ID`)
+   - Data Agent A (`DATA_AGENT_A_ID`)
+   - Data Agent B (`DATA_AGENT_B_ID`)
+   - Data Agent C (`DATA_AGENT_C_ID`)
 
 Usage:
 ------
@@ -61,9 +61,10 @@ load_dotenv()
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
 DATASET_ID = os.environ.get("BQ_DATASET_ID", "ecommerce_dw")
-LOCATION = "global"
-BQ_LOCATION = os.environ.get("BQ_LOCATION", "us-central1").lower()
-DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-lumiere-primary")
+DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b")
+DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-lumiere-a")
+DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-lumiere-b")
+DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-lumiere-c")
 
 
 def get_access_token() -> str:
@@ -416,6 +417,9 @@ def cleanup_knowledge_catalog():
     print("\n[Step 5/5] Purging Gemini Enterprise Data Agents...")
     agent_ids = list(dict.fromkeys([
         DATA_AGENT_ID,
+        DATA_AGENT_A_ID,
+        DATA_AGENT_B_ID,
+        DATA_AGENT_C_ID,
         "gda-lumiere-primary",
         "gda-lumiere-a",
         "gda-lumiere-b",

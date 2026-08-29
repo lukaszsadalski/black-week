@@ -46,10 +46,19 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Set
 from google.cloud import bigquery
 from google.oauth2 import credentials as oauth2_credentials
-from app.config import PROJECT_ID, DATASET_ID, USER_IDENTITY, DATA_AGENT_ID
+from app.config import (
+    PROJECT_ID,
+    DATASET_ID,
+    USER_IDENTITY,
+    DATA_AGENT_ID,
+    DATA_AGENT_A_ID,
+    DATA_AGENT_B_ID,
+    DATA_AGENT_C_ID,
+    DATA_AGENT_NAME,
+    MULTI_DATA_AGENTS,
+)
 
 # Primary Google Cloud Data Agent resource path and chat endpoint
-DATA_AGENT_NAME = f"projects/{PROJECT_ID}/locations/global/dataAgents/{DATA_AGENT_ID}"
 CHAT_API_ENDPOINT = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global:chat"
 
 # Cached Google OAuth credential instance
@@ -197,13 +206,6 @@ CONVERSATIONS_API_ENDPOINT = f"https://geminidataanalytics.googleapis.com/v1/pro
 
 # In-memory mapping of client session IDs to server-managed GCP conversation resources
 _session_conversations: Dict[str, str] = {}
-
-# Dedicated Google Cloud Data Agent resources for the 3-Agent Comparative Workspace
-MULTI_DATA_AGENTS = {
-    "Agent A": f"projects/{PROJECT_ID}/locations/global/dataAgents/gda-lumiere-a",
-    "Agent B": f"projects/{PROJECT_ID}/locations/global/dataAgents/gda-lumiere-b",
-    "Agent C": f"projects/{PROJECT_ID}/locations/global/dataAgents/gda-lumiere-c",
-}
 
 
 def create_conversation(data_agent_name: str = None) -> Optional[str]:

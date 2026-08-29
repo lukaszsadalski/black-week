@@ -65,8 +65,19 @@ CA_API_ENDPOINT = os.environ.get(
     f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global:chat",
 )
 
-# Active BigQuery Data Agent resource identifier configured in Google Cloud
+# Active BigQuery Data Agent resource identifiers configured in Google Cloud
 DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID", "gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b")
+DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-lumiere-a")
+DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-lumiere-b")
+DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-lumiere-c")
+
+# Fully-qualified resource names for the primary and multi-agent cockpit
+DATA_AGENT_NAME = f"projects/{PROJECT_ID}/locations/global/dataAgents/{DATA_AGENT_ID}"
+MULTI_DATA_AGENTS = {
+    "Agent A": f"projects/{PROJECT_ID}/locations/global/dataAgents/{DATA_AGENT_A_ID}",
+    "Agent B": f"projects/{PROJECT_ID}/locations/global/dataAgents/{DATA_AGENT_B_ID}",
+    "Agent C": f"projects/{PROJECT_ID}/locations/global/dataAgents/{DATA_AGENT_C_ID}",
+}
 
 # ==============================================================================
 # UI Screen Flow Configuration Settings

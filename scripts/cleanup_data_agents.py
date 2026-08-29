@@ -7,10 +7,10 @@ in the target Google Cloud project (location: `global`).
 
 Agents Managed:
 ---------------
-1. Primary CMO Agent (`DATA_AGENT_ID` / `gda-lumiere-primary`)
-2. Agent A (`gda-lumiere-a` - Incident Triage)
-3. Agent B (`gda-lumiere-b` - Stockouts & Availability)
-4. Agent C (`gda-lumiere-c` - Intraday Pacing & Ad Spend)
+1. Primary Data Agent (`DATA_AGENT_ID`)
+2. Data Agent A (`DATA_AGENT_A_ID`)
+3. Data Agent B (`DATA_AGENT_B_ID`)
+4. Data Agent C (`DATA_AGENT_C_ID`)
 5. Any additional dynamic Data Agents discovered via the GCP API.
 
 Usage:
@@ -47,7 +47,10 @@ load_dotenv()
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
 LOCATION = "global"
-DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-lumiere-primary")
+DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b")
+DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-lumiere-a")
+DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-lumiere-b")
+DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-lumiere-c")
 
 
 def get_access_token() -> str:
@@ -214,6 +217,9 @@ def cleanup_data_agents(hard_delete: bool = False):
     # 1. Discover all remote agents + add known project agent IDs
     known_agents = [
         DATA_AGENT_ID,
+        DATA_AGENT_A_ID,
+        DATA_AGENT_B_ID,
+        DATA_AGENT_C_ID,
         "gda-lumiere-primary",
         "gda-lumiere-a",
         "gda-lumiere-b",

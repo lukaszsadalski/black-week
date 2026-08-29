@@ -38,7 +38,10 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
 DATASET_ID = os.environ.get("BQ_DATASET_ID", "ecommerce_dw")
 REGION = os.environ.get("BQ_LOCATION", "us-central1").lower()
-DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-lumiere-primary")
+DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b")
+DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-lumiere-a")
+DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-lumiere-b")
+DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-lumiere-c")
 USER_NAME_SCREEN = os.environ.get("USER_NAME_SCREEN", "on")
 
 
@@ -230,6 +233,9 @@ def main():
         f"CA_API_HOST=https://geminidataanalytics.googleapis.com,"
         f"CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/{project_id}/locations/global:chat,"
         f"DATA_AGENT_ID={DATA_AGENT_ID},"
+        f"DATA_AGENT_A_ID={DATA_AGENT_A_ID},"
+        f"DATA_AGENT_B_ID={DATA_AGENT_B_ID},"
+        f"DATA_AGENT_C_ID={DATA_AGENT_C_ID},"
         f"USER_NAME_SCREEN={USER_NAME_SCREEN}"
     )
 
