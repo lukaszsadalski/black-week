@@ -50,7 +50,7 @@ LumièreShop is built on a clean, decoupled, cloud-native architecture connectin
    - Allows analysts to compare candidate search prompts concurrently, scoring forensic coverage, precision, and causal balance before launching an investigation.
 
 5. **3-Agent Parallel Conversational Cockpit ("Compare Chats")**:
-   - Executes side-by-side comparative diagnostics across 3 dedicated Google Cloud Data Agents (`gda-lumiere-a`, `gda-lumiere-b`, `gda-lumiere-c`) with isolated table clusters.
+   - Executes side-by-side comparative diagnostics across 3 dedicated Google Cloud Data Agents (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`) with isolated table clusters.
    - Synchronized broadcast prompt input that distributes inquiries simultaneously with independent BigQuery SQL generation, Vega-Lite visual charts, and 4-stage reasoning breakdowns.
 
 6. **Forensic Telemetry & Audit Logging**:
@@ -139,7 +139,7 @@ BQ_LOCATION=YOUR_GCP_REGION # e.g. us-central1 or preferred region
 # Gemini Enterprise Agent Platform (Conversational Analytics API)
 CA_API_HOST=https://geminidataanalytics.googleapis.com
 CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/YOUR_GCP_PROJECT_ID/locations/global:chat
-DATA_AGENT_ID=gda-lumiere-primary
+DATA_AGENT_ID=gda-blackweek-primary
 
 # UI Screen Flow Configuration (Initial User Name Input Screen)
 USER_NAME_SCREEN=on
@@ -153,7 +153,7 @@ USER_NAME_SCREEN=on
 | **`GCP_USER_IDENTITY`** | **Yes** | `your-name@company.com` | Your email address, used to tag operator identity in BigQuery audit logs (`agent_interaction_logs`). |
 | **`BQ_LOCATION`** | Optional | `us-central1` (or your region) | The regional location for BigQuery dataset storage and Cloud Run container execution. |
 | **`BQ_DATASET_ID`** | Optional | `ecommerce_dw` | The BigQuery dataset name that will hold all 140 operational, financial, and simulation tables. |
-| **`DATA_AGENT_ID`** | Optional | `gda-lumiere-primary` | Identifier for the primary BigQuery Data Agent. **You do NOT need to create an agent in advance** — the bootstrap script will automatically create and ground it in your GCP project. |
+| **`DATA_AGENT_ID`** | Optional | `gda-blackweek-primary` | Identifier for the primary BigQuery Data Agent. **You do NOT need to create an agent in advance** — the bootstrap script will automatically create and ground it in your GCP project. |
 | **`USER_NAME_SCREEN`** | Optional | `on` | Set to `"on"` to show Screen 0 (Operator Identity Entry), or `"off"` to bypass it with auto-generated session IDs. |
 
 ---
@@ -177,7 +177,7 @@ python3 scripts/bootstrap_new_project.py
 4. **19.3M Calibrated Records**: Seeds deterministic synthetic data (`random.seed(42)`) representing realistic Black Week 2026 sales events, cart abandonments, ad bidding logs, and 6 weeks of historical baseline actuals.
 5. **Knowledge Catalog Business Glossary**: Deploys the business taxonomy across 15 categories, 85 business terms, and 188 native EntryLinks in Google Cloud.
 6. **Knowledge Catalog Custom AspectType**: Creates the `enterprise-data-context` AspectType and attaches structured governance metadata to all 140 tables.
-7. **Gemini BigQuery Data Agents**: Dynamically executes Knowledge Catalog semantic search to discover working tables and provisions/grounds all 4 Data Agents (`DATA_AGENT_ID`, `gda-lumiere-a`, `gda-lumiere-b`, `gda-lumiere-c`).
+7. **Gemini BigQuery Data Agents**: Dynamically executes Knowledge Catalog semantic search to discover working tables and provisions/grounds all 4 Data Agents (`DATA_AGENT_ID`, `gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`).
 8. **Automated Quality Audit**: Runs the full 11-suite verification pipeline to guarantee 100% system readiness.
 
 *(Tip: You can add `--dry-run` to inspect all stages without modifying cloud resources, or `--skip-tests` to bypass post-deployment verification).*
@@ -293,7 +293,7 @@ gcloud run deploy lumiere-shop-app \
   --project=${PROJECT_ID} \
   --platform=managed \
   --allow-unauthenticated \
-  --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},BQ_DATASET_ID=ecommerce_dw,BQ_LOCATION=${REGION},CA_API_HOST=https://geminidataanalytics.googleapis.com,CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/${PROJECT_ID}/locations/global:chat,DATA_AGENT_ID=gda-lumiere-primary,USER_NAME_SCREEN=on
+  --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},BQ_DATASET_ID=ecommerce_dw,BQ_LOCATION=${REGION},CA_API_HOST=https://geminidataanalytics.googleapis.com,CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/${PROJECT_ID}/locations/global:chat,DATA_AGENT_ID=gda-blackweek-primary,USER_NAME_SCREEN=on
 ```
 
 ---
@@ -336,7 +336,7 @@ Clicking *"Compare prompts"* 3 times rapidly under Apps in the left sidebar open
 
 ### 🤖 3-Agent Parallel Conversational Cockpit ("Compare Chats")
 Clicking *"Compare chats"* 3 times rapidly under Apps opens the dedicated 3-Agent staging and parallel evaluation studio:
-- Provisions 3 parallel Data Agents (`gda-lumiere-a`, `gda-lumiere-b`, `gda-lumiere-c`) with isolated table clusters (29, 21, 20 tables).
+- Provisions 3 parallel Data Agents (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`) with isolated table clusters (23, 25, 24 tables).
 - **Synchronized Broadcast Bar**: Dispatches analytical prompts to all 3 agents simultaneously.
 - **100-Row Table Capacity & Vertical Scrolling**: Renders up to 100 rows per table with sticky headers, natural visibility for the first 25 rows, smooth vertical scrolling, and dynamic row count badges.
 - **Unified Multi-Agent Auditing**: Every agent interaction is persisted to BigQuery `ecommerce_dw.agent_interaction_logs` tagged with `menu_item='compare chats'` and `agent_no='agentA' / 'agentB' / 'agentC'`.

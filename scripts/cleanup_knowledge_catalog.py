@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Knowledge Catalog & Data Agent Environment Reset Tool
-=====================================================
+Knowledge Catalog Environment Reset Tool
+=========================================
 Safely deletes all LumièreShop metadata and governance resources from
-Google Cloud Knowledge Catalog (AspectTypes, Glossaries, Terms, Categories, DataScans)
-and Gemini Enterprise Data Agents.
+Google Cloud Knowledge Catalog (AspectTypes, Glossaries, Terms, Categories, DataScans).
 
 This script ensures a completely clean slate for fresh installations on any GCP project
 or new BigQuery dataset, preventing resource name collisions or stale metadata bindings.
+Data Agents are preserved for instant re-grounding without soft-delete conflicts.
 
 Resources Cleaned:
 ------------------
@@ -21,11 +21,6 @@ Resources Cleaned:
    - `profile-ad-creatives`
    - `profile-shipping-lead-times`
    - `profile-catalog-recommender`
-4. Gemini Enterprise Agent Platform Data Agents (location: `global`):
-   - Primary Data Agent (`DATA_AGENT_ID`)
-   - Data Agent A (`DATA_AGENT_A_ID`)
-   - Data Agent B (`DATA_AGENT_B_ID`)
-   - Data Agent C (`DATA_AGENT_C_ID`)
 
 Usage:
 ------
@@ -411,30 +406,10 @@ def cleanup_knowledge_catalog():
             scan_url = f"https://dataplex.googleapis.com/v1/projects/{PROJECT_ID}/locations/{loc}/dataScans/{scan_id}"
             delete_resource(scan_url, headers, f"DataScan ({loc})", scan_id)
 
-    # --------------------------------------------------------------------------
-    # 5. Delete Gemini Data Agents
-    # --------------------------------------------------------------------------
-    print("\n[Step 5/5] Purging Gemini Enterprise Data Agents...")
-    agent_ids = list(dict.fromkeys([
-        DATA_AGENT_ID,
-        DATA_AGENT_A_ID,
-        DATA_AGENT_B_ID,
-        DATA_AGENT_C_ID,
-        "gda-lumiere-primary",
-        "gda-lumiere-a",
-        "gda-lumiere-b",
-        "gda-lumiere-c"
-    ]))
-    for agent_id in agent_ids:
-        if not agent_id:
-            continue
-        agent_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{agent_id}"
-        delete_resource(agent_url, headers, "Data Agent", agent_id)
-
     print("\n" + "=" * 80)
-    print("✨ KNOWLEDGE CATALOG & DATA AGENT PURGE COMPLETE!")
-    print("You can now safely re-run full turnkey provisioning:")
-    print("  python3 scripts/bootstrap_new_project.py")
+    print("✨ KNOWLEDGE CATALOG METADATA PURGE COMPLETE!")
+    print("All glossaries, categories, terms, aspects, and data scans have been purged.")
+    print("Data Agents are kept persistent for instant re-grounding.")
     print("=" * 80 + "\n")
 
 

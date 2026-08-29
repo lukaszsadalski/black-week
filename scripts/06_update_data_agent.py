@@ -42,10 +42,10 @@ load_dotenv()
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
 DATASET_ID = os.environ.get("BQ_DATASET_ID", "ecommerce_dw")
-DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b")
-DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-lumiere-a")
-DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-lumiere-b")
-DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-lumiere-c")
+DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-blackweek-primary")
+DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-blackweek-a")
+DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-blackweek-b")
+DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-blackweek-c")
 
 PROMPTS = {
     "primary": (
@@ -73,35 +73,6 @@ PROMPTS = {
         "Show 15-minute intraday target vs actual revenue curve for Beauty on Friday."
     ),
 }
-
-
-def update_env_variable(key: str, value: str):
-    """Persists updated agent ID into root .env file."""
-    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
-    if not os.path.exists(env_path):
-        with open(env_path, "w", encoding="utf-8") as f:
-            f.write(f"{key}={value}\n")
-        os.environ[key] = value
-        return
-
-    with open(env_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-
-    updated = False
-    new_lines = []
-    for line in lines:
-        if line.strip().startswith(f"{key}="):
-            new_lines.append(f"{key}={value}\n")
-            updated = True
-        else:
-            new_lines.append(line)
-
-    if not updated:
-        new_lines.append(f"{key}={value}\n")
-
-    with open(env_path, "w", encoding="utf-8") as f:
-        f.writelines(new_lines)
-    os.environ[key] = value
 
 
 def get_access_token():
@@ -216,37 +187,12 @@ def provision_or_update_data_agent(agent_id: str, display_name: str, description
                 print(f"  ✅ Data Agent '{agent_id}' created and grounded successfully ({len(table_refs)} tables).")
                 return True, agent_id
             elif "SOFT_DELETED" in create_res.text:
-                print(f"  ℹ️ Notice: Agent ID '{agent_id}' is in Google Cloud CCFE SOFT_DELETED tombstone state.")
-                # Fallback to an active replacement revision ID
-                alt_id = f"{agent_id}-v2"
-                alt_create_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents?dataAgentId={alt_id}"
-                alt_res = requests.post(alt_create_url, headers=headers, json=payload, timeout=30)
-                if alt_res.status_code in [200, 201]:
-                    print(f"  ✅ Data Agent '{alt_id}' created and grounded successfully ({len(table_refs)} tables).")
-                    return True, alt_id
-                else:
-                    alt_patch_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{alt_id}?updateMask=displayName,description,dataAnalyticsAgent.publishedContext.datasourceReferences"
-                    alt_patch = requests.patch(alt_patch_url, headers=headers, json=payload, timeout=30)
-                    if alt_patch.status_code in [200, 201]:
-                        print(f"  ✅ Data Agent '{alt_id}' updated and grounded successfully ({len(table_refs)} tables).")
-                        return True, alt_id
+                print(f"  ❌ Agent '{agent_id}' is in Google Cloud CCFE SOFT_DELETED state. Please specify a fresh DATA_AGENT_ID in .env.", file=sys.stderr)
+                return False, agent_id
             print(f"  ❌ Failed to create agent '{agent_id}' (HTTP {create_res.status_code}): {create_res.text}", file=sys.stderr)
             return False, agent_id
         elif "SOFT_DELETED" in res.text:
-            print(f"  ℹ️ Notice: Agent ID '{agent_id}' is in Google Cloud CCFE SOFT_DELETED tombstone state.")
-            alt_id = f"{agent_id}-v2"
-            alt_create_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents?dataAgentId={alt_id}"
-            alt_res = requests.post(alt_create_url, headers=headers, json=payload, timeout=30)
-            if alt_res.status_code in [200, 201]:
-                print(f"  ✅ Data Agent '{alt_id}' created and grounded successfully ({len(table_refs)} tables).")
-                return True, alt_id
-            else:
-                alt_patch_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{alt_id}?updateMask=displayName,description,dataAnalyticsAgent.publishedContext.datasourceReferences"
-                alt_patch = requests.patch(alt_patch_url, headers=headers, json=payload, timeout=30)
-                if alt_patch.status_code in [200, 201]:
-                    print(f"  ✅ Data Agent '{alt_id}' updated and grounded successfully ({len(table_refs)} tables).")
-                    return True, alt_id
-            print(f"  ❌ Failed to provision replacement for tombstoned agent '{agent_id}'", file=sys.stderr)
+            print(f"  ❌ Agent '{agent_id}' is in Google Cloud CCFE SOFT_DELETED state. Please specify a fresh DATA_AGENT_ID in .env.", file=sys.stderr)
             return False, agent_id
         else:
             print(f"  ❌ Failed to patch agent '{agent_id}' (HTTP {res.status_code}): {res.text}", file=sys.stderr)
@@ -320,9 +266,6 @@ def main():
         if ok:
             success_count += 1
             configured_agents[env_key] = active_id
-            if active_id != agent_id:
-                print(f"  📝 Updating .env variable {env_key}={active_id}")
-                update_env_variable(env_key, active_id)
 
     print("\n" + "=" * 80)
     print(f"DYNAMIC GROUNDING COMPLETE: {success_count}/{len(PROMPTS)} agents dynamically configured.")

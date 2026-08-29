@@ -263,6 +263,8 @@ def create_or_get_global_aspect_type(token):
     r = requests.post(create_url, headers=headers, json=payload)
     if r.status_code in (200, 201):
         print(f"✅ Successfully created global AspectType: enterprise-data-context")
+        print("⏳ Pausing 5s for global metadata control plane propagation...")
+        time.sleep(5.0)
     elif r.status_code == 409:
         print(f"✅ Global AspectType enterprise-data-context already exists.")
     else:
@@ -303,7 +305,7 @@ def attach_single_aspect(args):
     ]
     
     last_err = ""
-    for attempt in range(3):
+    for attempt in range(5):
         for proj_ident, aspect_type_uri, aspect_ref_key in ident_pairs:
             if not proj_ident:
                 continue
@@ -327,6 +329,10 @@ def attach_single_aspect(args):
                 r = requests.patch(patch_url, headers=headers, json=patch_payload, timeout=20)
                 if r.status_code == 200:
                     return table_name, True, None
+                elif r.status_code == 429 or (r.status_code == 403 and any(k in r.text.lower() for k in ["quota", "may not exist", "permission denied", "rate limit"])):
+                    backoff = 2.5 * (1.5 ** attempt)
+                    time.sleep(backoff)
+                    continue
                 else:
                     err_detail = r.text[:200].replace("\n", " ")
                     last_err = f"HTTP {r.status_code}: {err_detail}"
@@ -334,8 +340,8 @@ def attach_single_aspect(args):
                 last_err = str(e)
         
         # Exponential backoff on rate limits or concurrency locks
-        if attempt < 2:
-            time.sleep(1.0 * (attempt + 1))
+        if attempt < 4:
+            time.sleep(1.5 * (attempt + 1))
             
     return table_name, False, last_err
 
@@ -345,33 +351,39 @@ def attach_aspects_parallel(token, project_number, entry_loc):
     
     tasks = [(t_name, meta, token, project_number, entry_loc) for t_name, meta in TABLE_METADATA.items()]
     
-    success_count = 0
-    completed_count = 0
+    successful_tables = set()
+    failed_tasks = []
     errors = []
     
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         for table_name, success, err in executor.map(attach_single_aspect, tasks):
-            completed_count += 1
             if success:
-                success_count += 1
+                successful_tables.add(table_name)
             else:
+                failed_tasks.append(next(t for t in tasks if t[0] == table_name))
                 if len(errors) < 5:
                     errors.append(f"{table_name} -> {err}")
-            if completed_count % 25 == 0 or completed_count == total:
-                print(f"  Progress: {success_count}/{completed_count} tables updated (Total: {total}).")
+            if len(successful_tables) % 25 == 0 or (len(successful_tables) + len(failed_tasks)) == total:
+                print(f"  Progress: {len(successful_tables)}/{len(successful_tables) + len(failed_tasks)} tables processed (Total: {total}).")
 
-    if success_count == total:
-        print(f"✅ Completed global aspect attachment: {success_count}/{total} tables processed.\n")
+    # Reconciliation Pass for any failed tables
+    if failed_tasks:
+        print(f"\n⏳ Running Reconciliation Pass for {len(failed_tasks)} remaining tables after 4s pause...")
+        time.sleep(4.0)
+        for task in list(failed_tasks):
+            t_name, success, err = attach_single_aspect(task)
+            if success:
+                successful_tables.add(t_name)
+                failed_tasks.remove(task)
+            else:
+                print(f"  ⚠️ Reconciliation failed for `{t_name}`: {err}", file=sys.stderr)
+            time.sleep(0.5)
+
+    if len(successful_tables) == total:
+        print(f"✅ Completed global aspect attachment: {len(successful_tables)}/{total} tables processed (100% complete).\n")
     else:
-        print(f"\n⚠️ Completed with warnings: {success_count}/{total} tables updated successfully ({total - success_count} failed).")
-        if errors:
-            print("  Sample errors encountered:")
-            for err in errors:
-                print(f"    - {err}")
-            print("\n💡 Troubleshooting Tips:")
-            print("  1. Verify your GCP user/service account has the 'roles/dataplex.metadataAdmin' or 'roles/dataplex.editor' role.")
-            print("  2. Ensure Knowledge Catalog API is enabled: `gcloud services enable dataplex.googleapis.com datacatalog.googleapis.com`")
-            print("  3. Verify your BigQuery tables exist in the dataset: `python3 scripts/01_create_schema.py && python3 scripts/11_create_extended_schema.py`\n")
+        print(f"\n❌ ERROR: Failed to attach aspects to all tables ({len(successful_tables)}/{total}). Missing: {[t[0] for t in failed_tasks]}", file=sys.stderr)
+        sys.exit(1)
 
 def main():
     if not PROJECT_ID:

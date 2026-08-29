@@ -1330,7 +1330,7 @@
      */
 
     // Unique client session identifier generated per browser workspace
-    const currentSessionId = 'SESS-CMO-' + Math.random().toString(36).substring(2, 9);
+    let currentSessionId = 'SESS-CMO-' + Math.random().toString(36).substring(2, 9);
     let currentUserName = '';
     let initialChatStarted = false;
 

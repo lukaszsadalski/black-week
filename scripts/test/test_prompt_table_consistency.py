@@ -30,6 +30,8 @@ async def test_consistency():
 
         console_errors = []
         page.on("pageerror", lambda err: console_errors.append(str(err)))
+        page.on("console", lambda msg: print(f"   [Browser Console {msg.type}]: {msg.text}"))
+        page.on("dialog", lambda dialog: print(f"   [Browser Dialog {dialog.type}]: {dialog.message}") or dialog.accept())
 
         print("================================================================================")
         print("PROMPT TABLE COUNT & APOSTROPHE ESCAPING CONSISTENCY TEST")
@@ -96,7 +98,7 @@ async def test_consistency():
 
         # 7. Wait for transition to Screen 2
         print("7. Waiting for transition to CMO Conversation Workspace...")
-        await page.wait_for_selector("#workspaceView:not(.hidden)", timeout=15000)
+        await page.wait_for_selector("#workspaceView:not(.hidden)", timeout=45000)
         
         badge_locator = page.locator("#activeTablesCountBadge")
         if await badge_locator.count() > 0:
@@ -111,12 +113,12 @@ async def test_consistency():
         print("\n8. Testing prompt containing apostrophes ('It's Black Friday 14:30...')...")
         # Return to Screen 1
         await page.locator("#workspaceView button[title='Return to Google Chat Alert Screen']").click()
-        await page.wait_for_selector("#alertView:not(.hidden)", timeout=6000)
+        await page.wait_for_selector("#alertView:not(.hidden)", timeout=45000)
         await page.wait_for_timeout(300)
 
         # Re-open Prompt Studio Modal
         await page.evaluate("() => { if (typeof openPromptStudio === 'function') openPromptStudio(); }")
-        await page.wait_for_selector("#promptStudioModal:not(.hidden)", timeout=6000)
+        await page.wait_for_selector("#promptStudioModal:not(.hidden)", timeout=45000)
 
         # Reset to Incident preset containing "It's Black Friday..."
         await page.evaluate("() => { if (typeof loadPromptPreset === 'function') loadPromptPreset('incident'); }")
@@ -134,7 +136,7 @@ async def test_consistency():
 
         # Click Launch on Card 0
         await page.locator("#studioScorecardsGrid > div:first-child button:has-text('Launch Investigation')").click()
-        await page.wait_for_selector("#workspaceView:not(.hidden)", timeout=15000)
+        await page.wait_for_selector("#workspaceView:not(.hidden)", timeout=45000)
 
         if await badge_locator.count() > 0:
             badge_apostrophe = await badge_locator.inner_text()

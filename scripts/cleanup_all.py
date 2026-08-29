@@ -104,7 +104,7 @@ def cleanup_all():
         sys.exit(1)
 
     stages = [
-        (1, "Purge Gemini Enterprise Data Agents", "cleanup_data_agents.py"),
+        (1, "Reset Gemini Enterprise Data Agents Context", "cleanup_data_agents.py"),
         (2, "Purge Knowledge Catalog Governance & Metadata", "cleanup_knowledge_catalog.py"),
         (3, "Disable Auxiliary Google Cloud APIs", "cleanup_gcp_apis.py")
     ]

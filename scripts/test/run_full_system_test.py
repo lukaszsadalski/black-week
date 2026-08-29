@@ -178,7 +178,7 @@ def run_suite_4_multi_agents():
     r_prep = requests.post(f"{LOCAL_URL}/api/multi-agents/prepare", json=prep_payload, timeout=25)
     lat_prep = time.time() - t0
     assert r_prep.status_code == 200, f"HTTP {r_prep.status_code}: {r_prep.text}"
-    record_result("Suite 4: Dedicated Data Agents", "3-Agent REST Grounding Patch", "PASS", "Patched gda-lumiere-a (29), gda-lumiere-b (21), gda-lumiere-c (20) in GCP", lat_prep)
+    record_result("Suite 4: Dedicated Data Agents", "3-Agent REST Grounding Patch", "PASS", "Patched gda-blackweek-a, gda-blackweek-b, gda-blackweek-c in GCP", lat_prep)
     
     # 2. Parallel Query Dispatch
     t1 = time.time()
@@ -437,7 +437,7 @@ def generate_full_test_report():
 - **BigQuery Data Warehouse**: `ecommerce_dw` in `europe-west4` (140 Tables, 19,308,082 Records)
 - **Google Cloud AI & Semantic Services**:
   - **Knowledge Catalog**: `dataplex.googleapis.com` (`locations/global:searchEntries`, 14 Categories, 69 Glossary Terms)
-  - **Conversational Analytics API**: `geminidataanalytics.googleapis.com` (`gda-lumiere-a`, `gda-lumiere-b`, `gda-lumiere-c`, `gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b`)
+  - **Conversational Analytics API**: `geminidataanalytics.googleapis.com` (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`, `gda-blackweek-primary`)
   - **Gemini Enterprise Agent Platform**: `gemini-3.7-flash` (Global) with `gemini-2.5-flash` (`europe-west4` fallback)
 
 ---
@@ -472,7 +472,7 @@ def generate_full_test_report():
 ## 🔬 In-Depth Analysis of Novel Test Vectors
 
 ### 1. 3-Agent Parallel Conversational Grounding & Isolation
-- Tested simultaneous inquiries across all 3 dedicated GCP Data Agents (`gda-lumiere-a`, `gda-lumiere-b`, `gda-lumiere-c`).
+- Tested simultaneous inquiries across all 3 dedicated GCP Data Agents (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`).
 - Confirmed that each Data Agent strictly inspects and reports on its assigned Knowledge Catalog table partition (Agent A: 29 tables, Agent B: 21 tables, Agent C: 20 tables) without leaking unassigned table context.
 
 ### 2. Concurrent Multi-Session Thread Isolation

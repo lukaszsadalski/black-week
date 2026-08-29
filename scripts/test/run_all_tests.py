@@ -30,7 +30,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(TEST_DIR, "..", ".."))
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, TEST_DIR)
 
-from test_utils import load_project_env, get_project_root, ensure_test_server, ensure_playwright_chromium
+from test_utils import load_project_env, get_project_root, ensure_test_server, ensure_playwright_chromium, get_knowledge_catalog_indexing_status
 
 load_project_env()
 
@@ -172,6 +172,13 @@ def main():
     print("\n" + "=" * 80)
     print(" 📊 TEST EXECUTION SUMMARY")
     print(f" Total Tests: {len(test_plan)} | Passed: {passed_count} | Skipped: {skipped_count} | Failed: {failed_count}")
+    try:
+        pid = os.environ.get("GCP_PROJECT_ID", "")
+        did = os.environ.get("BQ_DATASET_ID", "ecommerce_dw")
+        idx_info = get_knowledge_catalog_indexing_status(pid, did)
+        print(f" Knowledge Catalog Indexing: {idx_info['indexed_tables']}/140 Tables ({idx_info['table_percentage']}%) | {idx_info['indexed_terms']}/85 Terms ({idx_info['term_percentage']}%) [{idx_info['status']}]")
+    except Exception:
+        pass
     print("=" * 80)
 
     summary_data = {

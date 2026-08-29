@@ -2041,8 +2041,8 @@
             "column": "session_started_at"
           },
           {
-            "table": "historical_sales_summary",
-            "column": "week_start"
+            "table": "weekly_commercial_targets",
+            "column": "week_start_date"
           }
         ]
       },
@@ -2114,8 +2114,8 @@
             "column": "session_started_at"
           },
           {
-            "table": "monthly_financial_actuals",
-            "column": "month"
+            "table": "weekly_commercial_targets",
+            "column": "week_start_date"
           }
         ]
       },
@@ -2218,8 +2218,8 @@
             "column": "week_start_date"
           },
           {
-            "table": "promotions",
-            "column": "end_date"
+            "table": "discount_coupons_master",
+            "column": "valid_to"
           }
         ]
       },
@@ -2433,8 +2433,8 @@
             "column": "date"
           },
           {
-            "table": "monthly_financial_actuals",
-            "column": "month"
+            "table": "legacy_orders_2023_archive",
+            "column": "created_at"
           }
         ]
       },

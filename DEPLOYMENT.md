@@ -37,7 +37,7 @@ gcloud services enable \
 
 ### Step 1.2b: Grant Developer Provisioning IAM Roles (If not Project Owner)
 ```bash
-for ROLE in roles/bigquery.admin roles/dataplex.metadataAdmin roles/datacatalog.admin roles/aiplatform.user; do
+for ROLE in roles/bigquery.admin roles/dataplex.catalogAdmin roles/dataplex.aspectTypeOwner roles/dataplex.metadataWriter roles/datacatalog.admin roles/aiplatform.user; do
   gcloud projects add-iam-policy-binding YOUR_GCP_PROJECT_ID \
     --member="user:$(gcloud config get-value account)" \
     --role="$ROLE"
@@ -59,7 +59,10 @@ BQ_LOCATION=YOUR_GCP_REGION # e.g. us-central1 or preferred region
 # Gemini Enterprise Agent Platform (Conversational Analytics API)
 CA_API_HOST=https://geminidataanalytics.googleapis.com
 CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/YOUR_GCP_PROJECT_ID/locations/global:chat
-DATA_AGENT_ID=gda-lumiere-primary
+DATA_AGENT_ID=gda-blackweek-primary
+DATA_AGENT_A_ID=gda-blackweek-a
+DATA_AGENT_B_ID=gda-blackweek-b
+DATA_AGENT_C_ID=gda-blackweek-c
 
 # UI Screen Flow Configuration (Initial User Name Input Screen)
 USER_NAME_SCREEN=on
@@ -213,7 +216,7 @@ gcloud run deploy lumiere-shop-app \
   --project=${PROJECT_ID} \
   --platform=managed \
   --allow-unauthenticated \
-  --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},BQ_DATASET_ID=ecommerce_dw,BQ_LOCATION=${REGION},CA_API_HOST=https://geminidataanalytics.googleapis.com,CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/${PROJECT_ID}/locations/global:chat,DATA_AGENT_ID=gda-lumiere-primary,USER_NAME_SCREEN=on
+  --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},BQ_DATASET_ID=ecommerce_dw,BQ_LOCATION=${REGION},CA_API_HOST=https://geminidataanalytics.googleapis.com,CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/${PROJECT_ID}/locations/global:chat,DATA_AGENT_ID=gda-blackweek-primary,DATA_AGENT_A_ID=gda-blackweek-a,DATA_AGENT_B_ID=gda-blackweek-b,DATA_AGENT_C_ID=gda-blackweek-c,USER_NAME_SCREEN=on
 ```
 
 ### Production Architecture & Feature Highlights
@@ -226,7 +229,7 @@ gcloud run deploy lumiere-shop-app \
 - **Prompt Scoring Calibration**: Differentiated scoring engine (50–98) based on retrieved table counts and domain breadth.
 - **Server-Managed Stateful Context**: Enabled via Google Cloud `conversation_reference` and nested `data_agent_context`.
 - **Prompt Studio Access**: Clicking *"Compare prompts"* 3 times rapidly under Apps in the left sidebar opens the Prompt Comparison Studio.
-- **3-Agent Parallel Cockpit**: Clicking *"Compare chats"* 3 times rapidly under Apps in the left sidebar opens the 3-Agent side-by-side comparative workspace with dedicated Google Cloud Data Agents (`gda-lumiere-a`, `gda-lumiere-b`, `gda-lumiere-c`).
+- **3-Agent Parallel Cockpit**: Clicking *"Compare chats"* 3 times rapidly under Apps in the left sidebar opens the 3-Agent side-by-side comparative workspace with dedicated Google Cloud Data Agents (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`).
 
 ### Verify Live Cloud Run Service
 ```bash

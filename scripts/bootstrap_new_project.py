@@ -203,7 +203,14 @@ def main():
     print(f"Total Provisioning Time: {total_elapsed:.2f}s")
     print(f"GCP Project            : {PROJECT_ID}")
     print(f"BigQuery Dataset       : {DATASET_ID} (140 Tables Provisioned)")
-    print(f"Knowledge Catalog      : 15 Categories, 85 Clean Terms, 188 EntryLinks")
+    print(f"Knowledge Catalog      : 15 Categories, 85 Clean Terms, 257 EntryLinks")
+    try:
+        sys.path.insert(0, os.path.join(PROJECT_ROOT, "scripts", "test"))
+        from test_utils import get_knowledge_catalog_indexing_status
+        indexing_info = get_knowledge_catalog_indexing_status(PROJECT_ID, DATASET_ID, token)
+        print(f"Catalog Indexing Status: {indexing_info['indexed_tables']}/140 Tables ({indexing_info['table_percentage']}%) [{indexing_info['status']}]")
+    except Exception:
+        pass
     print(f"Gemini Data Agents     : 4 Agents Active & Grounded")
     print("=" * 80)
 

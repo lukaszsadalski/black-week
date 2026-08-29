@@ -47,10 +47,10 @@ load_dotenv()
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
 LOCATION = "global"
-DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b")
-DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-lumiere-a")
-DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-lumiere-b")
-DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-lumiere-c")
+DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-blackweek-primary")
+DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-blackweek-a")
+DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-blackweek-b")
+DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-blackweek-c")
 
 
 def get_access_token() -> str:
@@ -220,6 +220,10 @@ def cleanup_data_agents(hard_delete: bool = False):
         DATA_AGENT_A_ID,
         DATA_AGENT_B_ID,
         DATA_AGENT_C_ID,
+        "gda-blackweek-primary",
+        "gda-blackweek-a",
+        "gda-blackweek-b",
+        "gda-blackweek-c",
         "gda-lumiere-primary",
         "gda-lumiere-a",
         "gda-lumiere-b",

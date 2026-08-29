@@ -29,7 +29,12 @@ IAM Roles Configured for Cloud Run Compute Service Account:
 - roles/bigquery.dataEditor              (Modifies and queries dataset tables)
 - roles/bigquery.jobUser                 (Submits BigQuery analytical jobs)
 - roles/dataplex.viewer                  (Knowledge Catalog search & metadata inspection)
-- roles/dataplex.metadataAdmin           (EntryLink and Glossary term management)
+- roles/dataplex.catalogAdmin            (Knowledge Catalog entries, entry groups, and aspect management)
+- roles/dataplex.aspectTypeOwner         (Manages custom AspectTypes in Knowledge Catalog)
+- roles/dataplex.aspectTypeUser          (Attaches AspectTypes to catalog entries)
+- roles/dataplex.metadataWriter          (Writes metadata aspects and glossary links)
+- roles/datacatalog.admin                (Full Data Catalog / Knowledge Catalog administration)
+- roles/datacatalog.viewer               (Data Catalog / Knowledge Catalog search viewer)
 - roles/aiplatform.user                  (Gemini Enterprise Agent Platform model invocation)
 - roles/serviceusage.serviceUsageConsumer(Consumes service quota under x-goog-user-project)
 - roles/artifactregistry.writer          (Pushes container images)
@@ -167,7 +172,12 @@ COMPUTE_ROLES = [
     "roles/bigquery.dataEditor",
     "roles/bigquery.jobUser",
     "roles/dataplex.viewer",
-    "roles/dataplex.metadataAdmin",
+    "roles/dataplex.catalogAdmin",
+    "roles/dataplex.aspectTypeOwner",
+    "roles/dataplex.aspectTypeUser",
+    "roles/dataplex.metadataWriter",
+    "roles/datacatalog.admin",
+    "roles/datacatalog.viewer",
     "roles/aiplatform.user",
     "roles/serviceusage.serviceUsageConsumer",
     "roles/artifactregistry.writer",

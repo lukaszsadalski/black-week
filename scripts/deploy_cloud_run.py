@@ -38,10 +38,10 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
 DATASET_ID = os.environ.get("BQ_DATASET_ID", "ecommerce_dw")
 REGION = os.environ.get("BQ_LOCATION", "us-central1").lower()
-DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b")
-DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-lumiere-a")
-DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-lumiere-b")
-DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-lumiere-c")
+DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-blackweek-primary")
+DATA_AGENT_A_ID = os.environ.get("DATA_AGENT_A_ID", "gda-blackweek-a")
+DATA_AGENT_B_ID = os.environ.get("DATA_AGENT_B_ID", "gda-blackweek-b")
+DATA_AGENT_C_ID = os.environ.get("DATA_AGENT_C_ID", "gda-blackweek-c")
 USER_NAME_SCREEN = os.environ.get("USER_NAME_SCREEN", "on")
 
 
@@ -183,7 +183,12 @@ def main():
         "roles/bigquery.dataEditor",
         "roles/bigquery.jobUser",
         "roles/dataplex.viewer",
-        "roles/dataplex.metadataAdmin",
+        "roles/dataplex.catalogAdmin",
+        "roles/dataplex.aspectTypeOwner",
+        "roles/dataplex.aspectTypeUser",
+        "roles/dataplex.metadataWriter",
+        "roles/datacatalog.admin",
+        "roles/datacatalog.viewer",
         "roles/aiplatform.user",
         "roles/cloudaicompanion.user",
         "roles/cloudaicompanion.admin",

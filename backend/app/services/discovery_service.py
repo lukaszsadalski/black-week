@@ -29,16 +29,6 @@ from app.config import PROJECT_ID, DATASET_ID
 from app.services.ca_service import get_access_token
 
 
-CORE_INVESTIGATION_TABLES = [
-    "categories", "products", "distribution_centers", "inventory_items", "inventory_snapshots",
-    "users", "orders", "order_items", "sales_event_stream", "weekly_commercial_targets",
-    "daily_category_targets", "category_15min_targets", "web_sessions", "web_events",
-    "oos_interactions", "competitor_price_feed", "marketing_campaigns", "daily_ad_performance",
-    "ad_bidding_log", "ad_creatives", "payment_gateway_logs", "influencer_campaigns",
-    "catalog_recommender_logs", "shipping_lead_times", "competitor_promotions"
-]
-
-
 class KnowledgeDiscoveryService:
     """
     Service client for Google Cloud Knowledge Catalog dynamic discovery and context hydration.
