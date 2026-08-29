@@ -112,29 +112,42 @@ def ensure_playwright_chromium() -> bool:
     """
     Ensures Playwright Chromium browser binary and Linux OS dependencies are installed.
     Automatically triggers `playwright install --with-deps chromium` if missing.
+    Returns True if Chromium can successfully launch in headless mode, False otherwise.
     """
     try:
         from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
+        p = sync_playwright().start()
+        try:
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+            p.stop()
+            return True
+        except Exception as e:
             try:
-                browser = p.chromium.launch(headless=True)
-                browser.close()
-                return True
-            except Exception as e:
-                err_msg = str(e)
-                if "missing dependencies" in err_msg.lower() or "host system is missing" in err_msg.lower() or "executable" in err_msg.lower() or "install" in err_msg.lower():
-                    print("⚡ Headless Linux environment detected. Installing Chromium with OS dependencies (`playwright install --with-deps chromium`)...")
+                p.stop()
+            except Exception:
+                pass
+            err_msg = str(e)
+            if "missing dependencies" in err_msg.lower() or "host system is missing" in err_msg.lower() or "executable" in err_msg.lower() or "install" in err_msg.lower():
+                print("⚡ Headless Linux environment detected. Attempting to install Chromium with OS dependencies (`playwright install --with-deps chromium`)...")
+                try:
+                    subprocess.run([sys.executable, "-m", "playwright", "install", "--with-deps", "chromium"], check=True, capture_output=True)
+                    p2 = sync_playwright().start()
                     try:
-                        subprocess.run([sys.executable, "-m", "playwright", "install", "--with-deps", "chromium"], check=True)
-                        browser = p.chromium.launch(headless=True)
+                        browser = p2.chromium.launch(headless=True)
                         browser.close()
+                        p2.stop()
                         return True
-                    except Exception as install_err:
-                        print(f"⚠️ Notice: Could not auto-install Linux OS browser packages: {install_err}")
-                        print("  To install manually on Linux: playwright install --with-deps chromium")
+                    except Exception:
+                        try:
+                            p2.stop()
+                        except Exception:
+                            pass
                         return False
+                except Exception:
+                    return False
+            return False
     except Exception as e:
-        print(f"Notice: Playwright browser check: {e}")
         return False
 
 

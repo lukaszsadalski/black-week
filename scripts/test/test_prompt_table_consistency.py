@@ -1,8 +1,22 @@
+#!/usr/bin/env python3
+"""
+Prompt & Grounded Table Consistency Test
+=========================================
+Dual-Mode test validating:
+1. Knowledge Catalog dynamic table resolution across candidate prompts.
+2. 1:1 table count parity between Prompt Comparison Scorecard and BigQuery Data Agent grounded sources.
+3. Proper handling and unescaping of prompts containing apostrophes (e.g. "It's Black Friday 14:30...").
+
+Execution Modes:
+- Mode A (Browser UI): Runs full Playwright browser automation when graphics/OS libraries are available.
+- Mode B (Headless REST API): Seamlessly runs direct HTTP validation (/api/evaluate-prompts, /api/set-active-prompt, /api/prepare-data)
+  when running in headless SSH Linux environments without graphical libraries.
+"""
+
 import os
 import sys
 import asyncio
 import requests
-from playwright.async_api import async_playwright
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(TEST_DIR, "..", ".."))
@@ -12,7 +26,6 @@ from test_utils import load_project_env, ensure_test_server, ensure_playwright_c
 load_project_env()
 
 BASE_URL = ensure_test_server(8000)
-ensure_playwright_chromium()
 
 
 def run_api_fallback_consistency_test(base_url: str):
@@ -96,16 +109,10 @@ def run_api_fallback_consistency_test(base_url: str):
     print("\n🎉 ALL HEADLESS REST API TABLE CONSISTENCY & APOSTROPHE TESTS PASSED 100% PERFECTLY!")
 
 
-async def test_consistency():
+async def run_browser_consistency_test(base_url: str):
+    from playwright.async_api import async_playwright
     async with async_playwright() as p:
-        try:
-            browser = await p.chromium.launch(headless=True)
-        except Exception as e:
-            print(f"\n⚡ Headless SSH Linux VM detected without Chromium OS libraries ({e}).")
-            print("  Executing seamless Headless REST API Consistency Test fallback...")
-            run_api_fallback_consistency_test(BASE_URL)
-            return
-
+        browser = await p.chromium.launch(headless=True)
         try:
             page = await browser.new_page(viewport={"width": 1400, "height": 900})
 
@@ -116,12 +123,12 @@ async def test_consistency():
 
             print("================================================================================")
             print("PROMPT TABLE COUNT & APOSTROPHE ESCAPING CONSISTENCY TEST (BROWSER UI MODE)")
-            print(f"Target URL: {BASE_URL}")
+            print(f"Target URL: {base_url}")
             print("================================================================================")
 
             # 1. Load Page
-            print(f"1. Opening {BASE_URL}...")
-            await page.goto(BASE_URL, wait_until="domcontentloaded")
+            print(f"1. Opening {base_url}...")
+            await page.goto(base_url, wait_until="domcontentloaded")
             await page.wait_for_timeout(600)
 
             # Bypass Screen 0 (User Name Screen) if active
@@ -235,5 +242,21 @@ async def test_consistency():
             await browser.close()
 
 
+def main():
+    has_browser = ensure_playwright_chromium()
+    if not has_browser:
+        print("\n⚡ Headless SSH Linux VM detected without Chromium OS libraries.")
+        print("  Executing seamless Headless REST API Consistency Test fallback...")
+        run_api_fallback_consistency_test(BASE_URL)
+        return
+
+    try:
+        asyncio.run(run_browser_consistency_test(BASE_URL))
+    except Exception as e:
+        print(f"\n⚡ Browser UI execution could not run ({e}).")
+        print("  Executing seamless Headless REST API Consistency Test fallback...")
+        run_api_fallback_consistency_test(BASE_URL)
+
+
 if __name__ == "__main__":
-    asyncio.run(test_consistency())
+    main()
