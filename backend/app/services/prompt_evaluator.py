@@ -77,10 +77,10 @@ class PromptEvaluatorService:
         }
 
         try:
-            res = await asyncio.to_thread(requests.post, url, headers=headers, json=body, timeout=12)
+            res = await asyncio.to_thread(requests.post, url, headers=headers, json=body, timeout=15)
             if res.status_code != 200:
                 print(f"Knowledge Catalog search error for prompt '{prompt[:30]}': HTTP {res.status_code}")
-                return {"prompt": prompt, "tables": [], "terms": [], "table_count": 0}
+                return {"prompt": prompt, "tables": [], "terms": [], "table_count": 0, "term_count": 0, "entry_link_count": 0, "top_10_tables": []}
 
             results = res.json().get("results", [])
             tables = []
@@ -88,12 +88,18 @@ class PromptEvaluatorService:
             dataset_pattern = f"datasets/{self.dataset_id}/tables/"
 
             for r in results:
+                lr = r.get("linkedResource", "")
                 dp = r.get("dataplexEntry", {})
                 name = dp.get("name", "")
                 resource = dp.get("entrySource", {}).get("resource", "")
+                display_name = dp.get("entrySource", {}).get("displayName", "")
 
-                # Extract direct BigQuery table entries
-                if dataset_pattern in name:
+                # 1. Extract physical BigQuery table references (1-Hop via linkedResource and entrySource)
+                if dataset_pattern in lr:
+                    tbl = lr.split(dataset_pattern)[-1]
+                    if tbl not in tables:
+                        tables.append(tbl)
+                elif dataset_pattern in name:
                     tbl = name.split(dataset_pattern)[-1]
                     if tbl not in tables:
                         tables.append(tbl)
@@ -102,50 +108,11 @@ class PromptEvaluatorService:
                     if tbl not in tables:
                         tables.append(tbl)
 
-                # Extract Business Glossary terms
-                if "/terms/" in name or "/terms/" in resource:
-                    term = name.split("/terms/")[-1] if "/terms/" in name else resource.split("/terms/")[-1]
+                # 2. Extract Business Glossary terms (1-Hop via linkedResource and entrySource)
+                if "/terms/" in lr or "/terms/" in name or "/terms/" in resource:
+                    term = display_name or (lr or name or resource).split("/terms/")[-1]
                     if term not in terms:
                         terms.append(term)
-
-            # If Knowledge Catalog semantic indexing is still warming up during cold-start,
-            # provide calibrated candidate table clusters based on prompt semantics
-            if len(tables) < 5:
-                prompt_lower = prompt.lower()
-                if any(w in prompt_lower for w in ["logistics", "dostaw", "przewoźnik", "sla", "czas", "carrier", "lead time", "shipping"]):
-                    tables = [
-                        "orders", "order_items", "shipping_lead_times", "distribution_centers",
-                        "carrier_shipments", "order_fulfillment_sla", "inventory_items", "inventory_snapshots",
-                        "products", "categories", "oos_interactions", "web_sessions", "web_events",
-                        "daily_category_targets", "weekly_commercial_targets", "returns_log",
-                        "refunds_rma_log", "customer_service_tickets", "carrier_performance_summary",
-                        "logistics_lead_time_index", "warehouse_bins"
-                    ]
-                    terms = ["fulfillment_sla_breach", "lead_time_variance", "carrier_on_time_rate", "warehouse_capacity", "today"]
-                elif any(w in prompt_lower for w in ["marketing", "roas", "reklam", "bidding", "cpc", "ad spend", "kampani"]):
-                    tables = [
-                        "marketing_campaigns", "daily_ad_performance", "ad_bidding_log", "ad_creatives",
-                        "web_sessions", "web_events", "orders", "order_items", "sales_event_stream",
-                        "daily_category_targets", "weekly_commercial_targets", "competitor_price_feed",
-                        "competitor_promotions", "catalog_recommender_logs", "customer_acquisition_cost",
-                        "influencer_campaigns", "email_marketing_attribution", "paid_search_bidding",
-                        "promo_codes", "roas_daily_summary"
-                    ]
-                    terms = ["roas", "learning_limited", "cpa", "cvr", "cpc_inflation", "ad_spend_pacing", "today"]
-                else:
-                    # Comprehensive Incident Triage (Default / Master Root Cause Cluster)
-                    tables = [
-                        "weekly_commercial_targets", "daily_category_targets", "category_15min_targets",
-                        "orders", "order_items", "sales_event_stream", "oos_interactions",
-                        "inventory_items", "inventory_snapshots", "products", "categories",
-                        "shipping_lead_times", "distribution_centers", "ad_bidding_log",
-                        "daily_ad_performance", "ad_creatives", "marketing_campaigns",
-                        "competitor_price_feed", "competitor_promotions", "catalog_recommender_logs",
-                        "payment_transactions", "carrier_shipments", "web_sessions", "web_events",
-                        "cart_recovery_abandonment", "order_fulfillment_sla", "promotional_events",
-                        "customer_service_tickets", "refunds_rma_log"
-                    ]
-                    terms = ["revenue_variance", "aov", "roas", "out_of_stock_rate", "fulfillment_sla_breach", "learning_limited", "cart_abandonment_rate", "today", "this_week"]
 
             entry_link_count = max(len(tables) + len(terms), 0)
             return {
@@ -159,27 +126,14 @@ class PromptEvaluatorService:
             }
         except Exception as e:
             print(f"Exception during Knowledge Catalog search for '{prompt[:30]}': {e}")
-            # Fallback cluster on exception
-            tables = [
-                "weekly_commercial_targets", "daily_category_targets", "category_15min_targets",
-                "orders", "order_items", "sales_event_stream", "oos_interactions",
-                "inventory_items", "inventory_snapshots", "products", "categories",
-                "shipping_lead_times", "distribution_centers", "ad_bidding_log",
-                "daily_ad_performance", "ad_creatives", "marketing_campaigns",
-                "competitor_price_feed", "competitor_promotions", "catalog_recommender_logs",
-                "payment_transactions", "carrier_shipments", "web_sessions", "web_events",
-                "cart_recovery_abandonment", "order_fulfillment_sla", "promotional_events",
-                "customer_service_tickets", "refunds_rma_log"
-            ]
-            terms = ["revenue_variance", "aov", "roas", "out_of_stock_rate", "fulfillment_sla_breach", "learning_limited", "cart_abandonment_rate", "today", "this_week"]
             return {
                 "prompt": prompt,
-                "tables": tables,
-                "terms": terms,
-                "table_count": len(tables),
-                "term_count": len(terms),
-                "entry_link_count": len(tables) + len(terms),
-                "top_10_tables": tables[:10],
+                "tables": [],
+                "terms": [],
+                "table_count": 0,
+                "term_count": 0,
+                "entry_link_count": 0,
+                "top_10_tables": [],
             }
 
     async def evaluate_prompts(self, prompts: List[str]) -> Dict[str, Any]:

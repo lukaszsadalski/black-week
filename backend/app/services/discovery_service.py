@@ -120,83 +120,34 @@ class KnowledgeDiscoveryService:
             res = requests.post(url, headers=headers, json=body, timeout=15)
             if res.status_code == 200:
                 results = res.json().get("results", [])
+                dataset_pattern = f"datasets/{self.dataset_id}/tables/"
                 for item in results:
+                    lr = item.get("linkedResource", "")
                     dp_entry = item.get("dataplexEntry", {})
                     name = dp_entry.get("name", "")
                     resource = dp_entry.get("entrySource", {}).get("resource", "")
                     display_name = dp_entry.get("entrySource", {}).get("displayName", "")
 
-                    # Case A: Physical BigQuery Table Entry
-                    dataset_pattern = f"datasets/{self.dataset_id}/tables/"
-                    if dataset_pattern in name:
+                    # Case A: Physical BigQuery Table Entry (1-Hop via linkedResource and entrySource)
+                    if dataset_pattern in lr:
+                        tbl = lr.split(dataset_pattern)[-1]
+                        discovered_tables.add(tbl)
+                    elif dataset_pattern in name:
                         tbl = name.split(dataset_pattern)[-1]
                         discovered_tables.add(tbl)
                     elif dataset_pattern in resource:
                         tbl = resource.split(dataset_pattern)[-1]
                         discovered_tables.add(tbl)
 
-                    # Case B: Glossary Term Entry
-                    if "/terms/" in name or "/terms/" in resource:
-                        term_id = (name or resource).split("/terms/")[-1]
-                        discovered_terms.add(display_name or term_id)
+                    # Case B: Glossary Term Entry (1-Hop via linkedResource and entrySource)
+                    if "/terms/" in lr or "/terms/" in name or "/terms/" in resource:
+                        term_id = display_name or (lr or name or resource).split("/terms/")[-1]
+                        discovered_terms.add(term_id)
 
         except Exception as e:
             print(f"Error calling Knowledge Catalog searchEntries API: {e}")
 
-        # ==============================================================================
-        # Step 2: Supplementary Thematic Fallback Pass (Ensures 5-domain forensic breadth)
-        # ==============================================================================
-        if len(discovered_tables) < 20:
-            try:
-                supp_body = {
-                    "query": "e-commerce revenue variance daily category targets orders stockouts ad bidding campaigns logistics",
-                    "scope": f"projects/{self.project_id}",
-                    "semanticSearch": True,
-                    "pageSize": 100,
-                }
-                res_supp = requests.post(url, headers=headers, json=supp_body, timeout=10)
-                if res_supp.status_code == 200:
-                    for item in res_supp.json().get("results", []):
-                        dp_entry = item.get("dataplexEntry", {})
-                        name = dp_entry.get("name", "")
-                        resource = dp_entry.get("entrySource", {}).get("resource", "")
-                        display_name = dp_entry.get("entrySource", {}).get("displayName", "")
-
-                        dataset_pattern = f"datasets/{self.dataset_id}/tables/"
-                        if dataset_pattern in name:
-                            discovered_tables.add(name.split(dataset_pattern)[-1])
-                        elif dataset_pattern in resource:
-                            discovered_tables.add(resource.split(dataset_pattern)[-1])
-
-                        if "/terms/" in name or "/terms/" in resource:
-                            term_id = (name or resource).split("/terms/")[-1]
-                            discovered_terms.add(display_name or term_id)
-            except Exception as e:
-                print(f"Supplementary Knowledge Catalog search notice: {e}")
-
-        # ==============================================================================
-        # Step 3: Discover Active EntryLinks for Discovered Tables
-        # ==============================================================================
-        for table in list(discovered_tables)[:10]:
-            try:
-                bq_entry = f"projects/{self.project_id}/locations/{self.entry_location}/entryGroups/@bigquery/entries/bigquery.googleapis.com/projects/{self.project_id}/datasets/{self.dataset_id}/tables/{table}"
-                lookup_url = f"https://dataplex.googleapis.com/v1/projects/{self.project_id}/locations/{self.entry_location}:lookupEntryLinks?entry={bq_entry}"
-                link_res = requests.get(lookup_url, headers=headers, timeout=5)
-                if link_res.status_code == 200:
-                    links = link_res.json().get("entryLinks", [])
-                    for l in links:
-                        link_name = l.get("name", "")
-                        if link_name:
-                            discovered_links.add(link_name.split("/")[-1])
-            except Exception:
-                pass
-
-        # If semantic indexing is still warming up during cold-start, ensure core tables are present
-        if len(discovered_tables) < 20:
-            for t in CORE_INVESTIGATION_TABLES:
-                discovered_tables.add(t)
-
-        # Estimate entry links based on discovered tables and terms if lookup returns baseline
+        # Estimate entry links based on discovered tables and terms
         entry_link_count = max(len(discovered_links), len(discovered_tables) + len(discovered_terms))
 
         return {
