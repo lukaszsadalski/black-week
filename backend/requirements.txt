@@ -1,18 +1,8 @@
-# ==============================================================================
-# LumièreShop Backend Application Dependencies (Cloud Run Production)
-# ==============================================================================
-
-# Core Web Framework & ASGI Server
+# LumièreShop Cloud Run Production Dependencies
 fastapi>=0.110.0,<1.0.0
 uvicorn>=0.30.0,<1.0.0
 pydantic>=2.7.0,<3.0.0
 anyio>=4.0.0,<5.0.0
-
-# HTTP & REST Client
 requests>=2.31.0,<3.0.0
-
-# Google Cloud Platform SDKs & BigQuery Client
 google-cloud-bigquery>=3.20.0,<4.0.0
 google-auth>=2.28.0,<3.0.0
-
-

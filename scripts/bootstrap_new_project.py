@@ -68,6 +68,7 @@ LOCATION = os.environ.get("BQ_LOCATION", "us-central1")
 DATA_AGENT_ID = os.environ.get("DATA_AGENT_ID") or os.environ.get("CA_DATA_AGENT_ID", "gda-8216e5c2-fedb-4ef5-bb16-d65878618b8b")
 
 STAGES = [
+    ("0. Google Cloud APIs & IAM Role Bindings", "scripts/setup_gcp_apis.py"),
     ("1. Core BigQuery Schema (26 Tables)", "scripts/01_create_schema.py"),
     ("2. Extended Enterprise Schemas (104 Tables)", "scripts/11_create_extended_schema.py"),
     ("3. Forensic Log Schema Extensions", "scripts/04_extend_log_schema.py"),

@@ -533,8 +533,18 @@ def send_cmo_prompt(
                         print(f"Notice: Failed to fetch BQ job metadata for {bq_job_id}: {bq_err}", file=sys.stderr)
 
         else:
+            error_details = ""
+            try:
+                err_json = res.json().get("error", {})
+                error_details = err_json.get("message", "")
+            except Exception:
+                error_details = res.text[:300]
+
             error_message = f"CA API HTTP {res.status_code}: {res.reason}"
-            text_answer = f"Gemini Data Analytics API response received (HTTP {res.status_code})."
+            if error_details:
+                text_answer = f"Gemini Data Analytics API Notice (HTTP {res.status_code}):\n{error_details}"
+            else:
+                text_answer = f"Gemini Data Analytics API response received (HTTP {res.status_code})."
 
     except Exception as e:
         elapsed_ms = int((time.time() - start_time) * 1000)

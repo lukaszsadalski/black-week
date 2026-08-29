@@ -5557,9 +5557,44 @@
           tableBadge.textContent = `${count} Tables Mapped`;
         }
 
+        // 1. Reset chat session ID for clean investigation
+        currentSessionId = 'SESS-INV-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+
+        // 2. Reset messages thread to initial welcome state with prompt badge
+        const thread = document.getElementById('messagesThread');
+        if (thread) {
+          thread.innerHTML = `
+            <div class="flex gap-3.5">
+              <div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                <i data-lucide="bot" class="w-5 h-5 text-blue-700 dark:text-blue-400"></i>
+              </div>
+              <div class="max-w-[85%] bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 p-6 md:p-7 rounded-3xl rounded-tl-sm text-sm space-y-2.5 shadow-sm">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold font-mono border border-blue-200 dark:border-blue-800">
+                    ${promptId.replace('_', ' ')} (${count} Tables Mapped)
+                  </span>
+                </div>
+                <p id="welcomeTitle" class="font-semibold text-slate-900 dark:text-white text-base">
+                  Dedicated Investigation Session Initialized
+                </p>
+                <p id="welcomeDesc" class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Knowledge Catalog context configured with ${count} target BigQuery tables for ${promptId.replace('_', ' ')}. Launching automated analytical inquiry...
+                </p>
+              </div>
+            </div>
+          `;
+          lucide.createIcons();
+        }
+
+        // 3. Close studio modal and switch to workspace
         closePromptStudio();
         switchToWorkspaceView();
-        showFloatingToast(`🚀 Launched Workspace with ${promptId.replace('_', ' ')} (${count} tables mapped)!`);
+        showFloatingToast(`🚀 Launched Investigation with ${promptId.replace('_', ' ')} (${count} tables mapped)!`);
+
+        // 4. Automatically dispatch selected candidate prompt
+        setTimeout(() => {
+          sendPrompt(promptText);
+        }, 300);
 
       } catch (err) {
         console.error("Error applying prompt and launching workspace:", err);

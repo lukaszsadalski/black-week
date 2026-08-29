@@ -84,14 +84,39 @@ def run_cmd(args: list, desc: str, check: bool = True) -> subprocess.CompletedPr
 
 
 def get_project_number(project_id: str) -> str:
-    res = subprocess.run(
-        [GCLOUD, "projects", "describe", project_id, "--format=value(projectNumber)"],
-        capture_output=True,
-        text=True,
-        timeout=15
-    )
-    if res.returncode == 0 and res.stdout.strip():
-        return res.stdout.strip()
+    # 1. Check .env
+    env_num = os.environ.get("GCP_PROJECT_NUMBER")
+    if env_num and env_num.strip().isdigit():
+        return env_num.strip()
+
+    # 2. Try REST API with access token
+    try:
+        from backend.app.services.ca_service import get_access_token
+        token = get_access_token()
+        if token:
+            url = f"https://cloudresourcemanager.googleapis.com/v1/projects/{project_id}"
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(url, headers=headers, timeout=10)
+            if res.status_code == 200:
+                p_num = str(res.json().get("projectNumber", ""))
+                if p_num:
+                    return p_num
+    except Exception:
+        pass
+
+    # 3. Fallback to gcloud CLI
+    try:
+        res = subprocess.run(
+            [GCLOUD, "projects", "describe", project_id, "--format=value(projectNumber)", "--quiet"],
+            capture_output=True,
+            text=True,
+            timeout=15
+        )
+        if res.returncode == 0 and res.stdout.strip() and res.stdout.strip().isdigit():
+            return res.stdout.strip()
+    except Exception:
+        pass
+
     return ""
 
 
@@ -174,6 +199,7 @@ def main():
         "roles/aiplatform.user",
         "roles/cloudaicompanion.user",
         "roles/cloudaicompanion.admin",
+        "roles/serviceusage.serviceUsageConsumer",
         "roles/artifactregistry.writer",
         "roles/artifactregistry.reader",
         "roles/storage.admin",
