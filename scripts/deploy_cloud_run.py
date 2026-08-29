@@ -191,6 +191,11 @@ def main():
     print(f"\n▶️  2. Configuring IAM roles for Service Accounts ({project_number})...")
     compute_sa = f"serviceAccount:{project_number}-compute@developer.gserviceaccount.com"
     compute_roles = [
+        "roles/geminidataanalytics.dataAgentUser",
+        "roles/geminidataanalytics.dataAgentStatelessUser",
+        "roles/geminidataanalytics.dataAgentCreator",
+        "roles/geminidataanalytics.dataAgentOwner",
+        "roles/geminidataanalytics.admin",
         "roles/bigquery.admin",
         "roles/bigquery.dataEditor",
         "roles/bigquery.jobUser",

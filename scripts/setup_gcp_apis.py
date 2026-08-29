@@ -156,6 +156,11 @@ REQUIRED_APIS = [
 ]
 
 COMPUTE_ROLES = [
+    "roles/geminidataanalytics.dataAgentUser",
+    "roles/geminidataanalytics.dataAgentStatelessUser",
+    "roles/geminidataanalytics.dataAgentCreator",
+    "roles/geminidataanalytics.dataAgentOwner",
+    "roles/geminidataanalytics.admin",
     "roles/cloudaicompanion.user",
     "roles/cloudaicompanion.admin",
     "roles/bigquery.admin",
