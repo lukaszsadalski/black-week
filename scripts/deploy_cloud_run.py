@@ -120,23 +120,6 @@ def get_project_number(project_id: str) -> str:
     return ""
 
 
-def ensure_requirements_compatibility():
-    """Ensures backend/requirements.txt contains only lightweight FastAPI runtime dependencies for Cloud Run."""
-    req_path = os.path.join(PROJECT_ROOT, "backend", "requirements.txt")
-    clean_reqs = (
-        "# LumièreShop Cloud Run Production Dependencies\n"
-        "fastapi>=0.110.0,<1.0.0\n"
-        "uvicorn>=0.30.0,<1.0.0\n"
-        "pydantic>=2.7.0,<3.0.0\n"
-        "anyio>=4.0.0,<5.0.0\n"
-        "requests>=2.31.0,<3.0.0\n"
-        "google-cloud-bigquery>=3.20.0,<4.0.0\n"
-        "google-auth>=2.28.0,<3.0.0\n"
-    )
-    with open(req_path, "w", encoding="utf-8") as f:
-        f.write(clean_reqs)
-
-
 def main():
     print("=" * 80)
     print("🚀 LUMIÈRESHOP CLOUD RUN AUTOMATED DEPLOYER")
@@ -145,9 +128,6 @@ def main():
     print(f"BigQuery Dataset  : {DATASET_ID}")
     print(f"Data Agent ID     : {DATA_AGENT_ID}")
     print("=" * 80)
-
-    # Pre-flight check on requirements.txt
-    ensure_requirements_compatibility()
 
     if not PROJECT_ID:
         # Fallback to active gcloud config

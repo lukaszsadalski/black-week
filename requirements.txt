@@ -1,0 +1,17 @@
+# ==============================================================================
+# LumièreShop — Complete Local Development & Data Pipeline Dependencies
+# ==============================================================================
+
+# Core Production Application Dependencies (FastAPI, Uvicorn, BigQuery Client)
+-r backend/requirements.txt
+
+# Numerical & Data Processing
+numpy>=1.24.0,<3.0.0
+
+# Synthetic Data Generation & Taxonomy
+faker>=24.0.0
+pyyaml>=6.0
+
+# Automated Testing & Documentation Generation
+playwright>=1.40.0
+beautifulsoup4>=4.12.0

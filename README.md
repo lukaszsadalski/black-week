@@ -101,7 +101,8 @@ cd black-week
 
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
+playwright install chromium
 ```
 
 ---
@@ -118,58 +119,7 @@ gcloud config set project YOUR_GCP_PROJECT_ID
 
 ---
 
-### Step 4.3: Enable Google Cloud APIs
-
-Run the following command to enable all **12 required Google Cloud APIs**:
-
-```bash
-gcloud services enable \
-  bigquery.googleapis.com \
-  bigqueryconnection.googleapis.com \
-  dataplex.googleapis.com \
-  datacatalog.googleapis.com \
-  geminidataanalytics.googleapis.com \
-  cloudaicompanion.googleapis.com \
-  aiplatform.googleapis.com \
-  run.googleapis.com \
-  cloudbuild.googleapis.com \
-  artifactregistry.googleapis.com \
-  iam.googleapis.com \
-  cloudresourcemanager.googleapis.com \
-  --project=YOUR_GCP_PROJECT_ID
-```
-
-| API Service | Key Purpose in LumièreShop |
-| :--- | :--- |
-| **`bigquery.googleapis.com`** | 140-table enterprise e-commerce data warehouse & analytical SQL processing. |
-| **`bigqueryconnection.googleapis.com`** | BigQuery Connection API for external agent & metadata bindings. |
-| **`dataplex.googleapis.com`** | Knowledge Catalog semantic search, AspectTypes, and Data Profiling. |
-| **`datacatalog.googleapis.com`** | Knowledge Catalog business glossary taxonomies & EntryLinks metadata. |
-| **`geminidataanalytics.googleapis.com`** | Gemini Enterprise Agent Platform Conversational Analytics Data Agents & stateful dialogue sessions. |
-| **`cloudaicompanion.googleapis.com`** | Cloud AI Companion API powering Gemini in BigQuery Studio and GCP Console Conversational Analytics UI. |
-| **`aiplatform.googleapis.com`** | Gemini 3.7 Flash LLM evaluation engine powering Prompt Comparison Studio. |
-| **`run.googleapis.com`** | Fully managed serverless container hosting for the FastAPI application. |
-| **`cloudbuild.googleapis.com`** | Automated container image building and Artifact Registry push. |
-| **`artifactregistry.googleapis.com`** | Secure regional Docker container image repository. |
-| **`iam.googleapis.com`** & **`cloudresourcemanager.googleapis.com`** | Service account IAM role assignments and project resource policies. |
-
----
-
-### Step 4.3b: Grant Developer Provisioning Roles (If not Project Owner)
-
-If your GCP account is not already a **Project Owner/Editor**, run this command to grant the necessary provisioning and metadata management permissions:
-
-```bash
-for ROLE in roles/bigquery.admin roles/dataplex.metadataAdmin roles/datacatalog.admin roles/aiplatform.user; do
-  gcloud projects add-iam-policy-binding YOUR_GCP_PROJECT_ID \
-    --member="user:$(gcloud config get-value account)" \
-    --role="$ROLE"
-done
-```
-
----
-
-### Step 4.4: Configure Environment Variables (`.env`)
+### Step 4.3: Configure Environment Variables (`.env`)
 
 Copy the environment template file:
 
@@ -221,13 +171,14 @@ python3 scripts/bootstrap_new_project.py
 ```
 
 **What this command automatically provisions in your Google Cloud Project:**
-1. **BigQuery Dataset & 140 Tables**: Creates the ecommerce dataset and all 140 tables across 17 business domains (Core Catalog, Orders, Clickstream, Competitors, Paid Ads, CRM, Reverse Logistics, ERP Finance, etc.).
-2. **100% Metadata Annotations**: Populates rich, structured descriptions on every table and column in BigQuery.
-3. **19.3M Calibrated Records**: Seeds deterministic synthetic data (`random.seed(42)`) representing realistic Black Week 2026 sales events, cart abandonments, ad bidding logs, and 6 weeks of historical baseline actuals.
-4. **Knowledge Catalog Business Glossary**: Deploys the business taxonomy across 15 categories, 85 business terms, and 188 native EntryLinks in Google Cloud.
-5. **Knowledge Catalog Custom AspectType**: Creates the `enterprise-data-context` AspectType and attaches structured governance metadata to all 140 tables.
-6. **Gemini BigQuery Data Agents**: Dynamically executes Knowledge Catalog semantic search to discover working tables and provisions/grounds all 4 Data Agents (`DATA_AGENT_ID`, `gda-lumiere-a`, `gda-lumiere-b`, `gda-lumiere-c`).
-7. **Automated Quality Audit**: Runs the full 11-suite verification pipeline to guarantee 100% system readiness.
+1. **Google Cloud APIs & IAM Roles (Stage 0)**: Automatically enables all 12 required Google Cloud APIs and configures all 18 Service Account IAM roles.
+2. **BigQuery Dataset & 140 Tables**: Creates the ecommerce dataset and all 140 tables across 17 business domains (Core Catalog, Orders, Clickstream, Competitors, Paid Ads, CRM, Reverse Logistics, ERP Finance, etc.).
+3. **100% Metadata Annotations**: Populates rich, structured descriptions on every table and column in BigQuery.
+4. **19.3M Calibrated Records**: Seeds deterministic synthetic data (`random.seed(42)`) representing realistic Black Week 2026 sales events, cart abandonments, ad bidding logs, and 6 weeks of historical baseline actuals.
+5. **Knowledge Catalog Business Glossary**: Deploys the business taxonomy across 15 categories, 85 business terms, and 188 native EntryLinks in Google Cloud.
+6. **Knowledge Catalog Custom AspectType**: Creates the `enterprise-data-context` AspectType and attaches structured governance metadata to all 140 tables.
+7. **Gemini BigQuery Data Agents**: Dynamically executes Knowledge Catalog semantic search to discover working tables and provisions/grounds all 4 Data Agents (`DATA_AGENT_ID`, `gda-lumiere-a`, `gda-lumiere-b`, `gda-lumiere-c`).
+8. **Automated Quality Audit**: Runs the full 11-suite verification pipeline to guarantee 100% system readiness.
 
 *(Tip: You can add `--dry-run` to inspect all stages without modifying cloud resources, or `--skip-tests` to bypass post-deployment verification).*
 
@@ -427,6 +378,7 @@ Clicking the **"Summary & Exit"** button in the top navigation bar opens the com
 
 ```text
 lumiere-shop/
+├── requirements.txt                    # Complete developer & pipeline dependencies (numpy, faker, playwright)
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                         # FastAPI application routes & lifecycle handlers
@@ -437,7 +389,7 @@ lumiere-shop/
 │   │       └── prompt_evaluator.py         # Gemini Enterprise Agent Platform (Gemini 3.7 Flash) scoring engine
 │   ├── static/
 │   │   └── index.html                      # Material Design 3 Single Page Application (Screens 1, 2, 3)
-│   └── requirements.txt                    # Python backend dependencies
+│   └── requirements.txt                    # Lean Cloud Run production container dependencies
 ├── config/
 │   ├── business_glossary.yaml              # Master human-readable business taxonomy
 │   └── business_glossary.json              # Knowledge Catalog glossary import manifest
