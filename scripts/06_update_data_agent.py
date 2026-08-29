@@ -112,11 +112,16 @@ def search_knowledge_catalog_dynamic(prompt: str, token: str) -> List[str]:
         dataset_pattern = f"datasets/{DATASET_ID}/tables/"
 
         for r in results:
+            lr = r.get("linkedResource", "")
             dp = r.get("dataplexEntry", {})
             name = dp.get("name", "")
             resource = dp.get("entrySource", {}).get("resource", "")
 
-            if dataset_pattern in name:
+            if dataset_pattern in lr:
+                tbl = lr.split(dataset_pattern)[-1]
+                if tbl not in discovered_tables:
+                    discovered_tables.append(tbl)
+            elif dataset_pattern in name:
                 tbl = name.split(dataset_pattern)[-1]
                 if tbl not in discovered_tables:
                     discovered_tables.append(tbl)
@@ -159,7 +164,7 @@ def provision_or_update_data_agent(agent_id: str, display_name: str, description
 
     print(f"\nGrounding Agent '{agent_id}' with {len(table_refs)} dynamically discovered tables...")
     
-    # 1. Try PATCH (if agent already exists)
+    # 1. Try PATCH (if agent already exists and is active)
     try:
         res = requests.patch(patch_url, headers=headers, json=payload, timeout=30)
         if res.status_code in [200, 201]:
@@ -173,32 +178,39 @@ def provision_or_update_data_agent(agent_id: str, display_name: str, description
             if create_res.status_code in [200, 201]:
                 print(f"  ✅ Data Agent '{agent_id}' created and grounded successfully ({len(table_refs)} tables).")
                 return True
-            elif create_res.status_code == 400 and "SOFT_DELETED" in create_res.text:
-                print(f"  ℹ️ Agent '{agent_id}' is in SOFT_DELETED state. Restoring via :undelete...")
-                undelete_url = f"{agent_url}:undelete"
-                requests.post(undelete_url, headers=headers, json={}, timeout=20)
-                patch_res = requests.patch(patch_url, headers=headers, json=payload, timeout=30)
-                if patch_res.status_code in [200, 201]:
-                    print(f"  ✅ Data Agent '{agent_id}' undeleted and grounded successfully ({len(table_refs)} tables).")
-                    return True
-            print(f"  ❌ Failed to create agent '{agent_id}' (HTTP {create_res.status_code}): {create_res.text}", file=sys.stderr)
-            return False
-        elif res.status_code == 400 and "SOFT_DELETED" in res.text:
-            print(f"  ℹ️ Agent '{agent_id}' is in SOFT_DELETED state. Restoring via :undelete...")
-            undelete_url = f"{agent_url}:undelete"
-            und_res = requests.post(undelete_url, headers=headers, json={}, timeout=20)
-            if und_res.status_code in [200, 201]:
-                print(f"  ✅ Restored agent '{agent_id}'. Now applying table groundings...")
-                patch_res = requests.patch(patch_url, headers=headers, json=payload, timeout=30)
-                if patch_res.status_code in [200, 201]:
-                    print(f"  ✅ Data Agent '{agent_id}' grounded successfully ({len(table_refs)} tables).")
+            elif "SOFT_DELETED" in create_res.text:
+                print(f"  ℹ️ Notice: Agent ID '{agent_id}' is in Google Cloud CCFE SOFT_DELETED tombstone state.")
+                # Fallback to an active replacement revision ID
+                alt_id = f"{agent_id}-v2"
+                alt_create_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents?dataAgentId={alt_id}"
+                alt_res = requests.post(alt_create_url, headers=headers, json=payload, timeout=30)
+                if alt_res.status_code in [200, 201]:
+                    print(f"  ✅ Data Agent '{alt_id}' created and grounded successfully ({len(table_refs)} tables).")
                     return True
                 else:
-                    print(f"  ❌ Failed to patch agent after undelete (HTTP {patch_res.status_code}): {patch_res.text}", file=sys.stderr)
-                    return False
+                    alt_patch_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{alt_id}?updateMask=displayName,description,dataAnalyticsAgent.publishedContext.datasourceReferences"
+                    alt_patch = requests.patch(alt_patch_url, headers=headers, json=payload, timeout=30)
+                    if alt_patch.status_code in [200, 201]:
+                        print(f"  ✅ Data Agent '{alt_id}' updated and grounded successfully ({len(table_refs)} tables).")
+                        return True
+            print(f"  ❌ Failed to create agent '{agent_id}' (HTTP {create_res.status_code}): {create_res.text}", file=sys.stderr)
+            return False
+        elif "SOFT_DELETED" in res.text:
+            print(f"  ℹ️ Notice: Agent ID '{agent_id}' is in Google Cloud CCFE SOFT_DELETED tombstone state.")
+            alt_id = f"{agent_id}-v2"
+            alt_create_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents?dataAgentId={alt_id}"
+            alt_res = requests.post(alt_create_url, headers=headers, json=payload, timeout=30)
+            if alt_res.status_code in [200, 201]:
+                print(f"  ✅ Data Agent '{alt_id}' created and grounded successfully ({len(table_refs)} tables).")
+                return True
             else:
-                print(f"  ❌ Failed to undelete agent '{agent_id}' (HTTP {und_res.status_code}): {und_res.text}", file=sys.stderr)
-                return False
+                alt_patch_url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{alt_id}?updateMask=displayName,description,dataAnalyticsAgent.publishedContext.datasourceReferences"
+                alt_patch = requests.patch(alt_patch_url, headers=headers, json=payload, timeout=30)
+                if alt_patch.status_code in [200, 201]:
+                    print(f"  ✅ Data Agent '{alt_id}' updated and grounded successfully ({len(table_refs)} tables).")
+                    return True
+            print(f"  ❌ Failed to provision replacement for tombstoned agent '{agent_id}'", file=sys.stderr)
+            return False
         else:
             print(f"  ❌ Failed to patch agent '{agent_id}' (HTTP {res.status_code}): {res.text}", file=sys.stderr)
             return False

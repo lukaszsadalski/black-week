@@ -113,6 +113,53 @@ def list_remote_data_agents(token: str, max_retries: int = 5) -> List[str]:
     return list(dict.fromkeys(discovered))
 
 
+def reset_data_agent(token: str, agent_id: str, max_retries: int = 5) -> bool:
+    """Safely clears an agent's table groundings without triggering CCFE SOFT_DELETED tombstone."""
+    url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{agent_id}?updateMask=displayName,description,dataAnalyticsAgent.publishedContext.datasourceReferences"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "x-goog-user-project": PROJECT_ID
+    }
+    payload = {
+        "displayName": f"LumiereShop Agent ({agent_id}) - Reset",
+        "description": "Reset state: ungrounded for fresh deployment.",
+        "dataAnalyticsAgent": {
+            "publishedContext": {
+                "datasourceReferences": {
+                    "bq": {
+                        "tableReferences": []
+                    }
+                }
+            }
+        }
+    }
+    for attempt in range(max_retries):
+        try:
+            r = requests.patch(url, headers=headers, json=payload, timeout=20)
+            if r.status_code in [200, 201]:
+                print(f"  ✅ Safely Reset Data Agent (ungrounded): {agent_id}")
+                return True
+            elif r.status_code == 404:
+                print(f"  ℹ️ Data Agent '{agent_id}' does not exist (clean).")
+                return True
+            elif r.status_code == 429 or (r.status_code == 403 and "quota" in r.text.lower()):
+                backoff = 3.0 * (1.5 ** attempt)
+                print(f"    ⏳ GCP rate limit encountered (HTTP {r.status_code}). Pausing {backoff:.1f}s before retry...")
+                time.sleep(backoff)
+                continue
+            else:
+                err_msg = r.text[:200].replace("\n", " ")
+                print(f"  ⚠️ Notice resetting Data Agent '{agent_id}' (HTTP {r.status_code}): {err_msg}")
+                return False
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2.0)
+            else:
+                print(f"  ❌ Error resetting Data Agent '{agent_id}': {e}")
+                return False
+    return False
+
+
 def delete_data_agent(token: str, agent_id: str, max_retries: int = 5) -> bool:
     """Deletes a single Data Agent via the Gemini Data Analytics REST API with exponential backoff."""
     url = f"https://geminidataanalytics.googleapis.com/v1beta/projects/{PROJECT_ID}/locations/global/dataAgents/{agent_id}"
@@ -147,9 +194,10 @@ def delete_data_agent(token: str, agent_id: str, max_retries: int = 5) -> bool:
     return False
 
 
-def cleanup_data_agents():
+def cleanup_data_agents(hard_delete: bool = False):
     print("=" * 80)
-    print("🧹 GEMINI ENTERPRISE DATA AGENTS CLEANUP")
+    action_str = "HARD PURGE (DELETE)" if hard_delete else "SAFE RESET (UNGROUND CONTEXT)"
+    print(f"🧹 GEMINI ENTERPRISE DATA AGENTS CLEANUP: {action_str}")
     print(f"Target Project ID : {PROJECT_ID}")
     print(f"Agent Location    : {LOCATION}")
     print("=" * 80)
@@ -174,38 +222,44 @@ def cleanup_data_agents():
     remote_agents = list_remote_data_agents(token)
     all_agents = list(dict.fromkeys([a for a in (known_agents + remote_agents) if a]))
 
-    print(f"\nFound {len(all_agents)} Data Agent candidate(s) to purge:")
+    print(f"\nFound {len(all_agents)} Data Agent candidate(s) to process:")
     for a in all_agents:
         source = "(Discovered via GCP API)" if a in remote_agents else "(Project Standard ID)"
         print(f"  • {a:<30} {source}")
 
-    print("\nExecuting deletions...")
-    deleted_count = 0
+    print(f"\nExecuting {'deletions' if hard_delete else 'safe context resets'}...")
+    processed_count = 0
     for agent_id in all_agents:
-        if delete_data_agent(token, agent_id):
-            deleted_count += 1
+        if hard_delete:
+            if delete_data_agent(token, agent_id):
+                processed_count += 1
+        else:
+            if reset_data_agent(token, agent_id):
+                processed_count += 1
         time.sleep(0.35)
 
     print("\n" + "=" * 80)
-    print(f"✨ DATA AGENT PURGE COMPLETE: {deleted_count}/{len(all_agents)} processed!")
+    print(f"✨ DATA AGENT CLEANUP COMPLETE: {processed_count}/{len(all_agents)} processed!")
     print("To re-provision and ground all 4 agents from scratch, run:")
     print("  python3 scripts/06_update_data_agent.py")
     print("=" * 80 + "\n")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Purge Gemini Enterprise BigQuery Data Agents.")
+    parser = argparse.ArgumentParser(description="Clean up or reset Gemini Enterprise BigQuery Data Agents.")
     parser.add_argument("--force", "-f", action="store_true", help="Bypass confirmation prompt")
+    parser.add_argument("--hard-delete", action="store_true", help="Execute destructive DELETE (causes CCFE soft-delete tombstone)")
     args = parser.parse_args()
 
     if not args.force:
-        print(f"⚠️  WARNING: You are about to DELETE all Gemini BigQuery Data Agents on project '{PROJECT_ID}'.")
+        action = "HARD DELETE" if args.hard_delete else "SAFE RESET"
+        print(f"⚠️  WARNING: You are about to execute {action} for all Gemini BigQuery Data Agents on project '{PROJECT_ID}'.")
         choice = input("Are you sure you want to proceed? [y/N]: ").strip().lower()
         if choice not in ["y", "yes"]:
             print("Operation aborted by user.")
             sys.exit(0)
 
-    cleanup_data_agents()
+    cleanup_data_agents(hard_delete=args.hard_delete)
 
 
 if __name__ == "__main__":
