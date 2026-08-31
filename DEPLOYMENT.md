@@ -220,6 +220,10 @@ gcloud run deploy lumiere-shop-app \
 ```
 
 ### Production Architecture & Feature Highlights
+- **Screen 1 Knowledge Catalog Prompt Container & Sales Bot Binding**: Step 1 dynamically displays the exact semantic search prompt dispatched to Knowledge Catalog inside a Material Design 3 container. The "Lumière Sales Bot" sidebar item is bound to the canonical Black Friday prompt.
+- **In-Window Stateful Investigation Reset**: Clicking "Start New Investigation" on the Summary Screen generates a new stateful session (`currentSessionId`), clears the thread to the initial greeting, resets telemetry counters to 0, and keeps the user in the same workspace window without bouncing back to Screen 1.
+- **Clean Workspace Entry**: Launching the single-agent workspace or 3-agent cockpit starts cleanly with 0 automated user messages in the chat stream.
+- **Dynamic Knowledge Catalog Discovery Counts**: Null-coalesced live counts (`table_count`, `term_count`, `entry_link_count`) dynamically rendered across all 4 preparation steps without placeholder fallbacks.
 - **UI Header & Modal Control Refinements**: Clean navigation with "Summary & Exit" action button and "Close" modal controls.
 - **Screen 0 Operator Entry**: Configurable initial screen (`USER_NAME_SCREEN=on`) with validation and session-wide auditing.
 - **Compare Chats Multi-Agent Auditing & Table Rendering**: 100-row table capacity, vertical scrolling with sticky headers, dynamic row count badges, and BigQuery logging tagged with `menu_item` and `agent_no`.
@@ -233,8 +237,8 @@ gcloud run deploy lumiere-shop-app \
 
 ### Verify Live Cloud Run Service
 ```bash
-# Set your deployed service URL
-SERVICE_URL="https://YOUR_SERVICE_URL.run.app"
+# Deployed live service URL on Google Cloud Run
+SERVICE_URL="https://lumiere-shop-app-htjxtcbs5a-ez.a.run.app"
 
 # 1. Health Check
 curl -s "${SERVICE_URL}/api/health"
