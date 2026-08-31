@@ -148,7 +148,7 @@ python3 scripts/bootstrap_new_project.py
 *(Tip: You can add `--dry-run` to inspect all stages without modifying cloud resources, or `--skip-tests` to bypass post-deployment verification).*
 
 > [!NOTE]
-> **Knowledge Catalog indexing**: Because Knowledge Catalog indexing runs asynchronously it may be delay, even an hour, to index all metadata and make it available for Knowledge Catalog Search. It means starting to use the app just after installation may result in less number of tables, glossary entries mapped to agent, than available in reality.
+> **Knowledge Catalog indexing**: Because Knowledge Catalog indexing runs asynchronously it may be delay, even an hour, to index all metadata and make it available for Knowledge Catalog Search. It means starting to use the app just after installation may result in less number of tables and glossary entries mapped to an agent than available in reality.
 
 #### Option B: Step-by-Step Manual Execution
 
