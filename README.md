@@ -42,7 +42,7 @@ LumièreShop is built on a clean, decoupled, cloud-native architecture connectin
 
 ---
 
-## 🗄️ 3. Data Warehouse Architecture (`ecommerce_dw`)
+## 3. Data Warehouse Architecture (`ecommerce_dw`)
 
 The `ecommerce_dw` dataset comprises **140 tables** structured according to an enterprise **Medallion Data Architecture**:
 
@@ -147,6 +147,9 @@ python3 scripts/bootstrap_new_project.py
 
 *(Tip: You can add `--dry-run` to inspect all stages without modifying cloud resources, or `--skip-tests` to bypass post-deployment verification).*
 
+> [!NOTE]
+> **Knowledge Catalog indexing**: Because Knowledge Catalog indexing runs asynchronously it may be delay, even an hour, to index all metadata and make it available for Knowledge Catalog Search. It means starting to use the app just after installation may result in less number of tables, glossary entries mapped to agent, than available in reality.
+
 #### Option B: Step-by-Step Manual Execution
 
 If you prefer to execute each provisioning stage sequentially:
@@ -189,10 +192,6 @@ python3 scripts/06_update_data_agent.py
 # 12. Run the master test suite to verify 100% system readiness
 python3 scripts/test/run_all_tests.py --all
 ```
-
-> [!NOTE]
-> **100% Deterministic Replication Across GCP Projects**: Because all schemas, synthetic data seeds (`random.seed(42)`), table/column descriptions, and Knowledge Catalog glossaries/aspects are fully declarative in this repository, executing this pipeline in **any new GCP project** will recreate the exact same 140 tables, 19.3M+ records, schema descriptions, and metadata bindings with zero data drift.
-
 ---
 
 ### Step 4.5: Run the Application Locally
@@ -287,26 +286,7 @@ The application opens in an authentic Google Workspace dark-mode shell. A promin
 
 ---
 
-### Optional Feature: Prompt Comparison Studio
-Clicking *"Compare prompts"* 3 times rapidly under Apps in the left sidebar opens the **Prompt Comparison Studio**:
-
-![Prompt Comparison Studio Modal](docs/images/prompt_comparison_studio.png)
-
-- Executes parallel Knowledge Catalog semantic searches across candidate inquiry prompts.
-- Employs **Google Cloud Gemini Enterprise Agent Platform (Gemini 3.7 Flash)** to score coverage, precision, and balance (0–100).
-- Clicking *"Launch Investigation with Prompt X"* dynamically scopes the BigQuery Data Agent to the discovered tables, starting the clean conversation.
-
----
-
-### 3-Agent Parallel Conversational Cockpit ("Compare Chats")
-Clicking *"Compare chats"* 3 times rapidly under Apps opens the dedicated 3-Agent staging and parallel evaluation studio:
-- Provisions 3 parallel Data Agents (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`) with isolated table clusters.
-- **Synchronized Broadcast Bar**: Dispatches analytical prompts to all 3 agents simultaneously with clean startup.
-- **Unified Multi-Agent Auditing**: Every agent interaction is persisted to BigQuery `ecommerce_dw.agent_interaction_logs` tagged with `menu_item='compare chats'` and `agent_no='agentA' / 'agentB' / 'agentC'`.
-
----
-
-### 🎨 Screen 2: CMO Conversational Analytics Workspace
+### Screen 2: CMO Conversational Analytics Workspace
 The main investigative cockpit supporting multi-turn stateful dialogue with the BigQuery Data Agent:
 
 ![Screen 2: CMO Conversational Analytics Workspace](docs/images/screen2_cmo_workspace.png)
@@ -337,6 +317,25 @@ Clicking the **"Summary & Exit"** button in the top navigation bar opens the com
   - Estimated BigQuery compute cost (standard analysis rate @ $6.25–$7.50 / TiB).
   - Accessed warehouse tables frequency badges.
 - **Executive PDF Export**: One-click export generates a multi-page executive PDF diagnostic report.
+
+---
+
+### Optional Feature: Prompt Comparison Studio
+Clicking *"Compare prompts"* 3 times rapidly under Apps in the left sidebar opens the **Prompt Comparison Studio**:
+
+![Prompt Comparison Studio Modal](docs/images/prompt_comparison_studio.png)
+
+- Executes parallel Knowledge Catalog semantic searches across candidate inquiry prompts.
+- Employs **Google Cloud Gemini Enterprise Agent Platform (Gemini 3.7 Flash)** to score coverage, precision, and balance (0–100).
+- Clicking *"Launch Investigation with Prompt X"* dynamically scopes the BigQuery Data Agent to the discovered tables, starting the clean conversation.
+
+---
+
+### Optional Feature: 3-Agent Parallel Conversational Cockpit ("Compare Chats")
+Clicking *"Compare chats"* 3 times rapidly under Apps opens the dedicated 3-Agent staging and parallel evaluation studio:
+- Provisions 3 parallel Data Agents (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`) with isolated table clusters.
+- **Synchronized Broadcast Bar**: Dispatches analytical prompts to all 3 agents simultaneously with clean startup.
+- **Unified Multi-Agent Auditing**: Every agent interaction is persisted to BigQuery `ecommerce_dw.agent_interaction_logs` tagged with `menu_item='compare chats'` and `agent_no='agentA' / 'agentB' / 'agentC'`.
 
 ---
 
