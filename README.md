@@ -10,51 +10,35 @@
 
 ---
 
-## 🌟 1. Project Overview
+## 1. Project Overview
 
 **LumièreShop** is an enterprise-grade, conversational e-commerce analytics platform and executive incident-response showcase. It pairs a **140-table Google Cloud BigQuery Data Warehouse** (`ecommerce_dw`, 19.3M rows, 100% column & table descriptions) with **Google Cloud Knowledge Catalog** semantic metadata search, **Google Cloud Gemini Enterprise Agent Platform** (Gemini 3.7 Flash), a thin **FastAPI** backend, and the **Google Cloud Conversational Analytics API** (`geminidataanalytics.googleapis.com`).
 
-### 🚨 The Business Scenario & Incident
+### The Business Scenario & Incident
 On **Black Friday 2026 at 14:30 UTC**, LumièreShop executive leadership receives an urgent Google Workspace alert:  
 **Storewide Black Week sales targets are missing forecast by 27.0% (€2.145M actual vs. €2.940M target, a €795,000 revenue gap).**
 
 Traditional static dashboards show aggregate top-line drops but fail to pinpoint the root cause. Using LumièreShop:
-1. Executive leadership queries the platform using plain English.
+1. Executive leadership queries the platform using plain natural language.
 2. The platform uses **Knowledge Catalog Semantic Search** to traverse enterprise taxonomies and discover the **crucial business tables** out of 140 warehouse tables.
 3. The **BigQuery Data Agent** is dynamically scoped and executes stateful multi-turn analytical SQL queries.
-4. The system isolates the multi-tier causal chain within minutes:
-   $$\text{Early Best-Seller Stockouts} \longrightarrow \text{Recommender Algorithm Degradation} \longrightarrow \text{Meta Target ROAS Automated Ad Budget Throttling}$$
 
 ---
 
-## 🏛️ 2. System Architecture
+## 2. System Architecture
 
-LumièreShop is built on a clean, decoupled, cloud-native architecture connecting a Material Design 3 single-page application to Google Cloud data and AI services:
+LumièreShop is built on a clean, decoupled, cloud-native architecture connecting a single-page application to Google Cloud data and AI services:
 
 ![LumièreShop System Architecture](docs/images/architecture_diagram.png)
 
-### 🔑 Core Architectural Pillars
+### Core Architectural Pillars
 
 1. **Semantic Discovery Layer (Google Cloud Knowledge Catalog)**:
-   - Evaluates natural language intent against business glossaries (14 categories, 69 terms with physical BigQuery table bindings), `enterprise-data-context` AspectTypes, and column annotations across all 140 BigQuery tables (100% description coverage across all 824 columns).
-   - Dynamically discovers and hydrates the exact working table set (e.g. 29 tables for incident triage, 21 tables for revenue targets, 20 tables for cross-pillar variance).
-
 2. **Dynamic Agent Grounding (Conversational Analytics API)**:
-   - Synchronizes the discovered working tables with the Google Cloud BigQuery Data Agents via live REST `PATCH` operations on `dataAnalyticsAgent.publishedContext.datasourceReferences.bq.tableReferences`.
-
 3. **Server-Managed Stateful Multi-Turn Dialogue**:
-   - Manages conversational sessions directly within Google Cloud using the `conversation_reference` resource architecture with nested `data_agent_context`.
-   - Google Cloud retains dialogue history server-side, enabling accurate pronoun resolution (*"What were the primary ad campaigns for that category?"* $\rightarrow$ filters by `target_category_id = 1`) without requiring the client to resend conversation history.
-
 4. **Multi-Prompt Comparative Evaluation Studio (Gemini Enterprise Agent Platform / Gemini 3.7 Flash)**:
-   - Allows analysts to compare candidate search prompts concurrently, scoring forensic coverage, precision, and causal balance before launching an investigation.
-
 5. **3-Agent Parallel Conversational Cockpit ("Compare Chats")**:
-   - Executes side-by-side comparative diagnostics across 3 dedicated Google Cloud Data Agents (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`) with isolated table clusters.
-   - Synchronized broadcast prompt input that distributes inquiries simultaneously with independent BigQuery SQL generation, Vega-Lite visual charts, and 4-stage reasoning breakdowns.
-
 6. **Forensic Telemetry & Audit Logging**:
-   - Every interaction logs a structured 4-stage reasoning trace, generated BigQuery SQL, execution latency, bytes billed, slot milliseconds, and referenced tables into `ecommerce_dw.agent_interaction_logs`.
 
 ---
 
@@ -71,7 +55,7 @@ ecommerce_dw (140 Tables)
 ```
 
 ### ⏱️ Point-in-Time Temporal Calibration
-- **Simulation Cutoff Timestamp**: **Friday, Nov 27, 2026 at 14:30:00 UTC** (strictly enforced; 0 actual records exist post-cutoff).
+- **Simulation Cutoff Timestamp**: **Friday, Nov 27, 2026 at 14:30:00 UTC**
 - **Target Horizon**: Full 8-day promotional window from Monday, Nov 23 to Cyber Monday, Nov 30, 2026.
 - **Statistical Realism**:
   - **Orders**: 26,413 completed orders.
@@ -81,14 +65,14 @@ ecommerce_dw (140 Tables)
 
 ---
 
-## 🛠️ 4. Installation & Deployment Guide
+## 4. Installation & Deployment Guide
 
 Follow these steps to deploy LumièreShop in your own Google Cloud project from scratch.
 
-### 📋 Prerequisites
+### Prerequisites
 1. A **Google Cloud Project** with billing enabled.
 2. **Google Cloud SDK (`gcloud`)** installed and authenticated.
-3. **Python 3.11+** installed locally.
+3. **Python 3.11+** installed locally with venv.
 4. **Git** and **Docker** / **Cloud Build** access.
 
 ---
@@ -132,30 +116,11 @@ Edit `.env` with your project details:
 ```ini
 # Google Cloud Platform & BigQuery Configuration
 GCP_PROJECT_ID=YOUR_GCP_PROJECT_ID
-GCP_USER_IDENTITY=YOUR_EMAIL@yourdomain.com
+GCP_USER_IDENTITY=YOUR_EMAIL@yourdomain.com # used to tag operator identity in BigQuery audit logs (agent_interaction_logs table).
 BQ_DATASET_ID=ecommerce_dw
-BQ_LOCATION=YOUR_GCP_REGION # e.g. us-central1 or preferred region
+BQ_LOCATION=YOUR_GCP_REGION # e.g. europe-west4 or other preferred region
 
-# Gemini Enterprise Agent Platform (Conversational Analytics API)
-CA_API_HOST=https://geminidataanalytics.googleapis.com
-CA_API_ENDPOINT=https://geminidataanalytics.googleapis.com/v1beta/projects/YOUR_GCP_PROJECT_ID/locations/global:chat
-DATA_AGENT_ID=gda-blackweek-primary
-
-# UI Screen Flow Configuration (Initial User Name Input Screen)
-USER_NAME_SCREEN=on
 ```
-
-#### 📋 Configuration Variables Breakdown
-
-| Variable | Required? | Default / Example | Description |
-| :--- | :---: | :--- | :--- |
-| **`GCP_PROJECT_ID`** | **Yes** | `your-gcp-project-id` | Your target Google Cloud Project ID where BigQuery, Knowledge Catalog, and Cloud Run reside. |
-| **`GCP_USER_IDENTITY`** | **Yes** | `your-name@company.com` | Your email address, used to tag operator identity in BigQuery audit logs (`agent_interaction_logs`). |
-| **`BQ_LOCATION`** | Optional | `us-central1` (or your region) | The regional location for BigQuery dataset storage and Cloud Run container execution. |
-| **`BQ_DATASET_ID`** | Optional | `ecommerce_dw` | The BigQuery dataset name that will hold all 140 operational, financial, and simulation tables. |
-| **`DATA_AGENT_ID`** | Optional | `gda-blackweek-primary` | Identifier for the primary BigQuery Data Agent. **You do NOT need to create an agent in advance** — the bootstrap script will automatically create and ground it in your GCP project. |
-| **`USER_NAME_SCREEN`** | Optional | `on` | Set to `"on"` to show Screen 0 (Operator Identity Entry), or `"off"` to bypass it with auto-generated session IDs. |
-
 ---
 
 ### Step 4.4: Cloud Provisioning & Data Warehouse Initialization
@@ -171,8 +136,8 @@ python3 scripts/bootstrap_new_project.py
 ```
 
 **What this command automatically provisions in your Google Cloud Project:**
-1. **Google Cloud APIs & IAM Roles (Stage 0)**: Automatically enables all 12 required Google Cloud APIs and configures all 18 Service Account IAM roles.
-2. **BigQuery Dataset & 140 Tables**: Creates the ecommerce dataset and all 140 tables across 17 business domains (Core Catalog, Orders, Clickstream, Competitors, Paid Ads, CRM, Reverse Logistics, ERP Finance, etc.).
+1. **Google Cloud APIs & IAM Roles**: Automatically enables all 12 required Google Cloud APIs and configures all 18 Service Account IAM roles.
+2. **BigQuery Dataset**: Creates the ecommerce dataset and all 140 tables across 17 business domains (Core Catalog, Orders, Clickstream, Competitors, Paid Ads, CRM, Reverse Logistics, ERP Finance, etc.).
 3. **100% Metadata Annotations**: Populates rich, structured descriptions on every table and column in BigQuery.
 4. **19.3M Calibrated Records**: Seeds deterministic synthetic data (`random.seed(42)`) representing realistic Black Week 2026 sales events, cart abandonments, ad bidding logs, and 6 weeks of historical baseline actuals.
 5. **Knowledge Catalog Business Glossary**: Deploys the business taxonomy across 15 categories, 85 business terms, and 188 native EntryLinks in Google Cloud.
@@ -298,47 +263,45 @@ gcloud run deploy lumiere-shop-app \
 
 ---
 
-## 🖥️ 5. User Experience & Investigation Flow
+## 5. User Experience & Investigation Flow
 
-LumièreShop provides a unified single-window experience guiding the user from initial operator entry to root cause resolution:
+LumièreShop provides a unified single-window experience guiding the user from initial operator entry to root cause resolution.
 
-### 👤 Screen 0: Operator Identity Entry (`#userNameView`)
-- **Configurable Entrypoint**: Controlled via `USER_NAME_SCREEN` in `.env` (`on` / `off`).
-- **Minimalist Surface**: Soft Material Design 3 surface with "Please provide user name", $\ge 5$ character validation, dynamic helper text, and Enter key submission.
-- **Session-Wide Auditing**: Operator identity is preserved across the entire browser tab session (`sessionStorage`) and tagged on every single BigQuery query interaction log.
-- **Automated Bypass**: When `USER_NAME_SCREEN=off`, automatically generates a random 8-character alphanumeric operator identifier.
+Operator identity entry screen is optional (can be configured in .env). It serves logging user name with other session data to agent_interaction_logs table. 
 
 ---
 
-### 🚨 Screen 1: Google Workspace Chat Bot Alert
-The application opens in an authentic Google Workspace dark-mode shell. A prominent high-priority alert card highlights the storewide revenue drop (-27.0% / -€795k).
+### Screen 1: Google Workspace Chat Bot Alert
+The application opens in an authentic Google Workspace dark-mode shell. A prominent high-priority alert card highlights the storewide revenue drop (-11.1% / -€735.7k).
 
 ![Screen 1: Google Workspace Chat Alert](docs/images/screen1_google_workspace_alert.png)
 
+- **Exact Semantic Search Prompt Display**: Step 1 renders the exact plain-English business prompt dispatched to Google Cloud Knowledge Catalog in a Material Design 3 container.
+- **Lumière Sales Bot Binding**: Clicking "Lumière Sales Bot" in the left navigation sidebar resets and binds the primary agent's prompt to `"It's Black Friday 14:30. Please prepare the data that will serve to find root cause of the problem of decreased revenue comparing to forecasted revenue during Black Week Sales."`
+- **Dynamic Real Live Counts**: Null-coalesced live counts (`table_count`, `term_count`, `entry_link_count`) dynamically render across all 4 preparation steps without placeholder fallbacks.
 - **Action**: Clicking *"Please prepare the data to analyze the issue"* executes a live 4-step progressive data preparation sequence:
-  1. `Connecting to Knowledge Catalog...`
-  2. `Traversing Business Glossary & Semantic Search...`
-  3. `Configuring BigQuery Data Agent Grounding (Discovered Tables Mapped)...`
-  4. `Entering CMO Conversational Analytics Workspace...` (with smooth 3-second transition pause).
+  1. `Querying Google Cloud Knowledge Catalog for business context...` 
+  2. `Discovering Tables, Terms & EntryLinks via Knowledge Catalog Semantic Search...` 
+  3. `Registering Analytical Tables with BigQuery Data Agent...`
+  4. `BigQuery Data Agent ready...`.
 
 ---
 
-### ✨ Optional Feature: Prompt Comparison Studio
+### Optional Feature: Prompt Comparison Studio
 Clicking *"Compare prompts"* 3 times rapidly under Apps in the left sidebar opens the **Prompt Comparison Studio**:
 
 ![Prompt Comparison Studio Modal](docs/images/prompt_comparison_studio.png)
 
 - Executes parallel Knowledge Catalog semantic searches across candidate inquiry prompts.
 - Employs **Google Cloud Gemini Enterprise Agent Platform (Gemini 3.7 Flash)** to score coverage, precision, and balance (0–100).
-- Clicking *"Launch Investigation with Prompt X"* dynamically scopes the BigQuery Data Agent to the discovered table count (e.g. 13 tables) and transitions immediately into the workspace.
+- Clicking *"Launch Investigation with Prompt X"* dynamically scopes the BigQuery Data Agent to the discovered tables, starting the clean conversation.
 
 ---
 
-### 🤖 3-Agent Parallel Conversational Cockpit ("Compare Chats")
+### 3-Agent Parallel Conversational Cockpit ("Compare Chats")
 Clicking *"Compare chats"* 3 times rapidly under Apps opens the dedicated 3-Agent staging and parallel evaluation studio:
-- Provisions 3 parallel Data Agents (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`) with isolated table clusters (23, 25, 24 tables).
-- **Synchronized Broadcast Bar**: Dispatches analytical prompts to all 3 agents simultaneously.
-- **100-Row Table Capacity & Vertical Scrolling**: Renders up to 100 rows per table with sticky headers, natural visibility for the first 25 rows, smooth vertical scrolling, and dynamic row count badges.
+- Provisions 3 parallel Data Agents (`gda-blackweek-a`, `gda-blackweek-b`, `gda-blackweek-c`) with isolated table clusters.
+- **Synchronized Broadcast Bar**: Dispatches analytical prompts to all 3 agents simultaneously with clean startup.
 - **Unified Multi-Agent Auditing**: Every agent interaction is persisted to BigQuery `ecommerce_dw.agent_interaction_logs` tagged with `menu_item='compare chats'` and `agent_no='agentA' / 'agentB' / 'agentC'`.
 
 ---
@@ -348,21 +311,24 @@ The main investigative cockpit supporting multi-turn stateful dialogue with the 
 
 ![Screen 2: CMO Conversational Analytics Workspace](docs/images/screen2_cmo_workspace.png)
 
-- **Stateful Thread Management**: Displays an active stateful pill (`Stateful: <uuid>...`) and includes a **"New Thread"** button to reset Google Cloud conversational context at any time.
+- **Clean Conversation Thread**: Launches with a welcoming assistant.
+- **Stateful Thread Management**: Displays an active stateful pill and maintains dialogue history server-side for natural multi-turn pronoun resolution.
 - **Natural Language Dialogue**: Asks follow-up diagnostic questions (*"Which product category missed its revenue target the most during Black Week?"* $\rightarrow$ *"What were the primary ad campaigns for that category?"*).
 - **Interactive Visualizations & Data Tables**: Renders embedded Vega-Lite interactive bar/line charts and responsive data tables (up to 100 rows with sticky headers, 25-row vertical scroll, and dynamic badges).
 - **Collapsible Technical Drawers**:
-  - 💻 **Generated BigQuery SQL**: Full, formatted SQL query generated and executed against BigQuery.
-  - 🧠 **Reasoning & Thinking Process**: Comprehensive 4-stage analytical breakdown (Context & Table Mapping, Analytical Strategy & SQL Formulation, Warehouse Execution Telemetry with job IDs & latency, Diagnostic Synthesis & Follow-up Paths).
+  - **Generated BigQuery SQL**: Full, formatted SQL query generated and executed against BigQuery.
+  - **Reasoning & Thinking Process**: Comprehensive 4-stage analytical breakdown (Context & Table Mapping, Analytical Strategy & SQL Formulation, Warehouse Execution Telemetry with job IDs & latency, Diagnostic Synthesis & Follow-up Paths).
 - **Dynamic Simulation Clock**: Displays continuous real-time ticking simulation time initialized at **Black Friday 14:30:00 UTC**.
 
 ---
 
-### 📊 Screen 3: Conversation & Telemetry Summary Screen
+### Screen 3: Conversation & Telemetry Summary Screen
 Clicking the **"Summary & Exit"** button in the top navigation bar opens the comprehensive Session Summary modal:
 
 ![Screen 3: Conversation & Telemetry Summary](docs/images/screen3_solution_summary.png)
 
+- **In-Window Stateful Reset ("Start New Investigation")**:
+  - Clicking *"Start New Investigation"* creates a brand-new stateful session (`currentSessionId`), clears the thread to the initial welcome card, resets telemetry counters to 0, and keeps the user directly in the same workspace window without bouncing back to Screen 1 or re-running table preparation.
 - **Session Findings & Analytical Threads**:
   - Highlights questions asked during the session and captures dynamic conversation findings grounded in BigQuery SQL queries.
 - **Diagnostic Telemetry Grid**:
@@ -370,11 +336,25 @@ Clicking the **"Summary & Exit"** button in the top navigation bar opens the com
   - Total investigation duration & bytes scanned.
   - Estimated BigQuery compute cost (standard analysis rate @ $6.25–$7.50 / TiB).
   - Accessed warehouse tables frequency badges.
-- **Executive PDF Export**: One-click export generates a multi-page executive PDF diagnostic report (`html2pdf.js`).
+- **Executive PDF Export**: One-click export generates a multi-page executive PDF diagnostic report.
 
 ---
 
-## 📁 6. Repository Map
+## 6. Cleanup
+
+Three scripts help to clean the environment:
+- **Reset Gemini Enterprise Data Agents Context**: cleanup_data_agents.py
+- **Purge Knowledge Catalog Governance & Metadata**: cleanup_knowledge_catalog.py
+- **Disable Auxiliary Google Cloud APIs**: cleanup_gcp_apis.py
+
+You can run all the script with cleanup_all.py
+
+Bear in mind that agents are only soft-deleted so you cannot recreate or update them immediately after deletion.
+Dataset in BigQuery is not automatically deleted.
+
+---
+
+## 7. Repository Map
 
 ```text
 lumiere-shop/
@@ -459,6 +439,6 @@ lumiere-shop/
 
 ---
 
-## 📜 7. License & Compliance
+## 8. License & Compliance
 
 This project is licensed under the **Apache License 2.0**. All synthetic data, schemas, and configurations are calibrated strictly for demonstration and testing purposes without containing real customer or financial personally identifiable information (PII).
